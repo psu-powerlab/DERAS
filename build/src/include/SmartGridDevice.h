@@ -21,25 +21,33 @@
  *    TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *    PERFORMANCE OF THIS SOFTWARE.
 **********************************************************/
+//
+// Author: Tylor slay
+// Description: This class will be used to set the price of power for DER and
+// - sycronize the time. 
 
 #ifndef SMARTGRIDDEVICE_HPP_INCLUDED
 #define SMARTGRIDDEVICE_HPP_INCLUDED
 
-#include "DistributedEnergyResource.hpp"
+#include "Aggregator.h"
 
 class SmartGridDevice : public ajn::BusObject {
 public:
     // member methods
-    SmartGridDevice (ajn::BusAttachment* bus, 
+    SmartGridDevice (ajn::BusAttachment* bus,
+    				 Aggregator* vpp,
                      const char* name, 
                      const char* path);
 
 private:
-    // member properties
-    ajn::BusAttachment* bus_;
+    // class composition
+    ajn::BusAttachment* bus_ptr_;
+    Aggregator* vpp_ptr_;
+    const ajn::InterfaceDescription::Member* signal_;
+    // properties
     const char* interface_;
     const char* name_;
-    const ajn::InterfaceDescription::Member* signal_;
+
 
 };
 

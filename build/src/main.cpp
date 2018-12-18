@@ -41,11 +41,11 @@
 #include "include/xml2schedule.h"
 //#include "include/schedulizer.h"
 #include "include/tsu.h"
-#include "include/aj_utility.hpp"
+#include "include/aj_utility.h"
 #include "include/Aggregator.hpp"
-#include "include/DistributedEnergyResource.hpp"
-#include "include/ClientListener.hpp"
-#include "include/SmartGridDevice.hpp"
+#include "include/DistributedEnergyResource.h"
+#include "include/ClientListener.h"
+#include "include/SmartGridDevice.h"
 #include "include/ScheduleOperator.h"
 
 using namespace std;

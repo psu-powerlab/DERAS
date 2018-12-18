@@ -20,9 +20,16 @@
  *    TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *    PERFORMANCE OF THIS SOFTWARE.
 **********************************************************/
+//
+// Author: Tylor slay
+// Description: This class will create a digital twin for each DCS that is
+// - discovered and removed the digital twin when it is removed from the system.
+// - It will also listen for property changes within the DCS and update the
+// - digital twim properties. 
 
-#ifndef CLIENTLISTENER_HPP_INCLUDED
-#define CLIENTLISTENER_HPP_INCLUDED
+#ifndef CLIENTLISTENER_H_INCLUDED
+#define CLIENTLISTENER_H_INCLUDED
+
 #include "Aggregator.hpp"
 
 class ClientListener : public ajn::MessageReceiver,
@@ -43,9 +50,9 @@ public :
                             void* context);
 private:
     // composition
-    ajn::BusAttachment* bus_;
-    ajn::Observer* obs_;
-    Aggregator* vpp_;
+    ajn::BusAttachment* bus_ptr_;
+    ajn::Observer* obs_ptr_;
+    Aggregator* vpp_ptr_;
 
 
     // properties
@@ -58,4 +65,4 @@ private:
     );
 };
 
-#endif // CLIENTLISTENER_HPP_INCLUDED
+#endif // CLIENTLISTENER_H_INCLUDED

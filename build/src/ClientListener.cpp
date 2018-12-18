@@ -26,15 +26,16 @@ ClientListener::ClientListener(
     ajn::BusAttachment* bus,
     ajn::Observer* obs,
     Aggregator* vpp,
-    const char* client_name) : bus_(bus),
-                               obs_(obs),
-                               vpp_(vpp),
+    const char* client_name) : bus_ptr_(bus),
+                               obs_ptr_(obs),
+                               vpp_ptr_(vpp),
                                client_interface_(client_name){
 } // end ClientListener
 
 // ObjectDiscovered
-// - a remote device has advertised the interface we are looking for.
-// - GetAllProperties and AddResource to Aggregator
+// - a DCS has advertised the interface we are looking for so DERAS
+// - request and update of it's current properties to ensure the digital twin is
+// - up to date.
 void ClientListener::ObjectDiscovered (ajn::ProxyBusObject& proxy) {
     std::string path = proxy.GetPath();
     std::string service_name = proxy.GetServiceName();
@@ -46,7 +47,7 @@ void ClientListener::ObjectDiscovered (ajn::ProxyBusObject& proxy) {
     std::cout << "\tSession ID = " << session_id << '\n';
 
 
-    bus_->EnableConcurrentCallbacks();
+    bus_ptr_->EnableConcurrentCallbacks();
     proxy.RegisterPropertiesChangedListener(
         client_interface_, props_, 11, *this, NULL
     );
@@ -57,7 +58,7 @@ void ClientListener::ObjectDiscovered (ajn::ProxyBusObject& proxy) {
     std::map <std::string, unsigned int> init;
     init = ClientListener::MapProperties (values);
 
-    vpp_->AddResource (init, proxy);
+    vpp_ptr_->AddResource (init, proxy);
 } // end ObjectDiscovered
 
 // ObjectLost
@@ -70,7 +71,7 @@ void ClientListener::ObjectLost (ajn::ProxyBusObject& proxy) {
     std::cout << "\n[LISTENER] : " << name << " connection lost\n";
     std::cout << "\tPath : " << path << " no longer exists\n";
 
-    vpp_->RemoveResource (path);
+    vpp_ptr_->RemoveResource (path);
 } // end ObjectLost
 
 // PropertiesChanged
@@ -82,7 +83,7 @@ void ClientListener::PropertiesChanged (ajn::ProxyBusObject& obj,
                                         void* context) {
     std::map <std::string, unsigned int> init;
     init = ClientListener::MapProperties (changed);
-    vpp_->UpdateResource (init, obj.GetPath ());
+    vpp_ptr_->UpdateResource (init, obj.GetPath ());
 } // end PropertiesChanged
 
 std::map <std::string, unsigned int> ClientListener::MapProperties (

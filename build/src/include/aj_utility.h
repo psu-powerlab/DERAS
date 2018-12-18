@@ -20,7 +20,7 @@
  *    PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
  *    TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
  *    PERFORMANCE OF THIS SOFTWARE.
-**********************************************************/
+**********************************************************/ 
 
 #ifndef AJ_UTILITY_HPP_INCLUDED
 #define AJ_UTILITY_HPP_INCLUDED
@@ -48,7 +48,7 @@ class SessionPortListener : public ajn::SessionPortListener {
 }; // end SessionPortListener
 
 // BuildDeviceInterface
-// - method to build alljoyn interface for local device
+// - method to build alljoyn interface for DER
 static QStatus BuildDeviceInterface (std::string name,
                                      ajn::BusAttachment* bus_ptr) {
     QStatus status;
@@ -213,7 +213,7 @@ static QStatus BuildDeviceInterface (std::string name,
 } // end BuildDeviceInterface
 
 // BuildServerInterface
-// - method to create alljoyn interface for remote device
+// - method to create alljoyn interface for DERAS
 static QStatus BuildServerInterface (std::string name,
                                      ajn::BusAttachment* bus_ptr) {
     QStatus status;
@@ -231,6 +231,16 @@ static QStatus BuildServerInterface (std::string name,
 
     status = interface->AddPropertyAnnotation(
         "time",
+        "org.freedesktop.DBus.Property.EmitsChangedSignal",
+        "true"
+    );
+    assert (status == ER_OK);
+
+    status = interface->AddProperty("price", "u", ajn::PROP_ACCESS_READ);
+    assert (status == ER_OK);
+
+    status = interface->AddPropertyAnnotation(
+        "price",
         "org.freedesktop.DBus.Property.EmitsChangedSignal",
         "true"
     );
@@ -303,15 +313,6 @@ static QStatus SetupBusAttachment (tsu::config_map& ini_map,
         return ER_FAIL;
     }
 
-    #ifdef SECURE
-        status = bus_ref.EnablePeerSecurity(
-            ECDHE_KEYX,
-            new ECDHEKeyXListener(),
-            ".alljoyn_keystore/custEV_ecdhe.ks",
-            false
-        );
-        assert (status == ER_OK);
-    #endif //SECURE
     return status;
 } // end SetupBusAttachment
 
