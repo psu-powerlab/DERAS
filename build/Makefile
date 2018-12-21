@@ -36,6 +36,9 @@ CFLAGS += $(AJFLAGS)
 LIB += -L$(AJ_LIB) -lalljoyn -lajrouter
 INC += -I$(AJ_INC)
 
+# BOOST Requirments
+INC += -I$(BOOST_INC)
+
 $(TARGET) : $(OBJECTS)
 	@mkdir -p $(TARGETDIR)
 	@echo "\n\tLinking $(TARGET)\n"; $(CC) $^ -o $(TARGET) $(LIB)

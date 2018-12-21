@@ -2,7 +2,7 @@
 #include <string>
 #include <map>
 
-#include "include/DistributedEnergyResource.hpp"
+#include "include/DistributedEnergyResource.h"
 
 #define DEBUG(x) std::cout << x << std::endl
 

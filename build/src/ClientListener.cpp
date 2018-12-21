@@ -1,11 +1,8 @@
 #include <iostream>
-
-
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/Observer.h>
-
-#include "include/ClientListener.hpp"
+#include "include/ClientListener.h"
 
 // (TS): this is the only way I could find to initialize a const char* array.
 //       AllJoyn documentation states "NULL" for registering all properties, but

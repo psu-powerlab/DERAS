@@ -29,6 +29,9 @@
 #ifndef SMARTGRIDDEVICE_HPP_INCLUDED
 #define SMARTGRIDDEVICE_HPP_INCLUDED
 
+#include <alljoyn/Status.h>
+#include <alljoyn/BusObject.h>
+#include <alljoyn/BusAttachment.h>
 #include "Aggregator.h"
 
 class SmartGridDevice : public ajn::BusObject {
@@ -38,6 +41,13 @@ public:
     				 Aggregator* vpp,
                      const char* name, 
                      const char* path);
+    virtual ~SmartGridDevice ();
+    QStatus Get (const char* interface, 
+                 const char* property, 
+                 ajn::MsgArg& value
+    );
+    QStatus SendPropertiesUpdate ();
+    void Loop ();
 
 private:
     // class composition
@@ -47,6 +57,8 @@ private:
     // properties
     const char* interface_;
     const char* name_;
+    unsigned int price_;
+    unsigned int time_;
 
 
 };

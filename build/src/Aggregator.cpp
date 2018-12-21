@@ -15,6 +15,7 @@ Aggregator::Aggregator (tsu::config_map &init) :
 	config_(init),
 	last_log_(0),
 	log_inc_(stoul(init["Logger"]["increment"])),
+	log_path_(init["Logger"]["path"]),
 	total_export_energy_(0),
 	total_export_power_(0),
 	total_import_energy_(0),
@@ -56,6 +57,18 @@ void Aggregator::SetImportWatts (unsigned int power) {
 	}
 }  // end Set Import Watts
 
+// Set Price
+// - the tenths of a cent per kWh
+void Aggregator::SetPrice (unsigned int price) {
+	price_ = price;
+}  // end Set Price
+
+// Set Time
+// - the UTC time as seconds from epoch
+void Aggregator::SetTime (unsigned int utc) {
+	time_ = utc;
+}  // end Set Time
+
 // Get Total Export Energy
 // - return the filtered resource Watt-hours available to export to the grid
 unsigned int Aggregator::GetTotalExportEnergy () {
@@ -79,6 +92,18 @@ unsigned int Aggregator::GetTotalImportEnergy () {
 unsigned int Aggregator::GetTotalImportPower () {
     return total_import_power_;
 }  // end Get Total Import Power
+
+// Get Price
+// - return tenths of a cent per kWh for electricity
+unsigned int Aggregator::GetPrice () {
+	return price_;
+}  // end Get Price
+
+// Get Time
+// - return the UTC time
+unsigned int Aggregator::GetTime () {
+	return time_;
+}  // end Get Time
 
 // Add Resource
 // - This is used by the Client Listener class to add newly discovered DER.
@@ -165,35 +190,32 @@ void Aggregator::Loop (float delta_time) {
 
 // Log
 // - log all resource properties based on the set log increment.
-// - unlike normal logging, all resource properties are stored in a string
-// - matrix before writting to a file to reduce the number of times the file
-// - must be opened and closed.
+// - TODO (TS): I should write this function to write to file once instead of
+// - for each resource, but we will see how much of performance loss we have.
 void Aggregator::Log () {
     // log resources based on elapsed time
     unsigned int utc = time(0);
     if (utc != last_log_ && utc % log_inc_ == 0) {
-    	Logger ("DATA", log_path_);
-    for (const auto &resource : resources_) {
-		Logger("DATA")
-			<< resource->GetPath () << '\t'
-			<< resource->GetExportRamp () << '\t'
-			<< resource->GetRatedExportPower () << '\t'
-			<< resource->GetRatedExportEnergy () << '\t'
-			<< resource->GetExportPower () << '\t'
-			<< resource->GetExportEnergy () << '\t'
-			<< resource->GetImportRamp () << '\t'
-			<< resource->GetRatedImportPower () << '\t'
-			<< resource->GetRatedImportEnergy () << '\t'
-			<< resource->GetImportPower () << '\t'
-			<< resource->GetImportEnergy ();
+	    for (const auto &resource : resources_) {
+			Logger("DATA", log_path_)
+				<< resource->GetPath () << '\t'
+				<< resource->GetExportRamp () << '\t'
+				<< resource->GetRatedExportPower () << '\t'
+				<< resource->GetRatedExportEnergy () << '\t'
+				<< resource->GetExportPower () << '\t'
+				<< resource->GetExportEnergy () << '\t'
+				<< resource->GetImportRamp () << '\t'
+				<< resource->GetRatedImportPower () << '\t'
+				<< resource->GetRatedImportEnergy () << '\t'
+				<< resource->GetImportPower () << '\t'
+				<< resource->GetImportEnergy ();
+		    }
+			last_log_ = utc;
 	    }
-		last_log_ = seconds;
-    }
 }
 
 void Aggregator::DisplayAllResources () {
     std::cout << "\nAll Resources:" << std::endl;
-    SortImportEnergy();
     for (const auto &resource : resources_) {
         resource->Print ();
     }
@@ -201,7 +223,6 @@ void Aggregator::DisplayAllResources () {
 
 void Aggregator::DisplayTargetResources () {
     std::cout << "\nTarget Resources:" << std::endl;
-    SortImportEnergy();
     for (const auto &resource : sub_resources_) {
         resource->Print ();
     }
@@ -220,7 +241,7 @@ void Aggregator::UpdateTotals () {
     }
 }
 
-void Aggregator::DisplayTotals () {
+void Aggregator::DisplaySummary () {
     std::cout << "\nAggregated Properties:!"
 		<< "\n\tTotal Export Energy = " << total_export_energy_
 		<< "\n\tTotal Export Power = " << total_export_power_
@@ -246,69 +267,36 @@ void Aggregator::FilterResources () {
     }
 }
 
-// Sort Import Energy
-// - sort resources by ramp rate, then energy available.
-// - TODO (TS): since EWH are the fastest ramping devices we have this ensure 
-// - we use their energy as soon as possbile, but we need to create a better
-// - system for dispatching our varied resources.
-void Aggregator::SortImportEnergy () {
-	// lambda function to compare resources
-	bool CompareResources = [] (
-			const std::shared_ptr <DistributedEnergyResource> lhs,
-			const std::shared_ptr <DistributedEnergyResource> rhs) {
-		// ramp rate check
-		if (lhs->GetRatedImportRamp () != rhs->GetRatedImportRamp ()) {
-			return (lhs->GetRatedImportRamp () > rhs->GetRatedImportRamp ());
-		}
-
-		// energy check
-		return (lhs->GetImportEnergy () > rhs->GetImportEnergy ());
-	};
-
-    std::sort(sub_resources_.begin(),sub_resources_.end(), CompareResources);
-}
-
-// Sort Export Energy
-// - sort resources by ramp rate, then energy available.
-// - TODO (TS): create a better system for dispatching our varied resources.
-void Aggregator::SortExportEnergy () {
-	// lambda function to compare resources
-	bool CompareResources = [] (
-			const std::shared_ptr <DistributedEnergyResource> lhs,
-			const std::shared_ptr <DistributedEnergyResource> rhs) {
-		// ramp rate check
-		if (lhs->GetRatedExportRamp () != rhs->GetRatedExportRamp ()) {
-			return (lhs->GetRatedExportRamp () > rhs->GetRatedExportRamp ());
-		}
-
-		// energy check
-		return (lhs->GetExportEnergy () > rhs->GetExportEnergy ());
-	};
-
-    std::sort(sub_resources_.begin(),sub_resources_.end(), CompareResources);
-}
-
 // Export Power
 // - loop through target resources and send export signal based on greatest
 // - export energy available. The signal sets both the "digital twin" and the 
 // - remote devices control watts;
-// - (TS): note we could also check to see if it is already dispatched to reduce 
-// - 	   data transfer.
-// - (TS): depending on the service we may need to check to see if the resource
-// - 	   can support the dispatch power for the full period.
-void Aggregator::ExportPower (unsigned int dispatch_power) {
-    Aggregator::SortExportEnergy ();
+void Aggregator::ExportPower () {
+	// sort by ramp first then export energy
+    std::sort(
+    	sub_resources_.begin(),sub_resources_.end(), [] (
+	const std::shared_ptr <DistributedEnergyResource> lhs,
+	const std::shared_ptr <DistributedEnergyResource> rhs) {
+		// ramp rate check
+		if (lhs->GetExportRamp () != rhs->GetExportRamp ()) {
+			return (lhs->GetExportRamp () > rhs->GetExportRamp ());
+		}
 
+		// energy check
+		return (lhs->GetExportEnergy () > rhs->GetExportEnergy ());
+	});
+
+    unsigned int dispatch_power = export_watts_;
     unsigned int power = 0;
     for (auto &resource : sub_resources_) {
 		if (dispatch_power > 0) {
-		    // Digital Twin
-		    power = resource->GetRatedExportPower ();
-		    resource->SetExportWatts (power);
-
-		    // AllJoyn Method Call
-		    resource->RemoteExportPower (power);
-
+			power = resource->GetRatedExportPower ();
+		    if (resource->GetExportPower () == 0) {
+		   	// Digital Twin
+			    resource->SetExportWatts (power);
+			    // AllJoyn Method Call
+			    resource->RemoteExportPower (power);
+		    }
 		    // subtract resources power from dispatch power
 		    if (dispatch_power > power) {
 		    	dispatch_power -= power;
@@ -316,24 +304,41 @@ void Aggregator::ExportPower (unsigned int dispatch_power) {
 		   		dispatch_power = 0;
 		    }
 		} else {
-		    break;
+		    return;
 		}
     }
 }  // end Export Power
 
 // Import Power
-void Aggregator::ImportPower (unsigned int dispatch_power) {
-    Aggregator::SortImportEnergy ();
+// - loop through target resources and send import signal based on greatest
+// - import energy available. The signal sets both the "digital twin" and the 
+// - remote devices control watts;
+void Aggregator::ImportPower () {
+	// sort by ramp first then by import power
+    std::sort(
+    	sub_resources_.begin(),sub_resources_.end(), [] (
+		const std::shared_ptr <DistributedEnergyResource> lhs,
+		const std::shared_ptr <DistributedEnergyResource> rhs) {
+		// ramp rate check
+		if (lhs->GetImportRamp () != rhs->GetImportRamp ()) {
+			return (lhs->GetImportRamp () > rhs->GetImportRamp ());
+		}
 
+		// energy check
+		return (lhs->GetImportEnergy () > rhs->GetImportEnergy ());
+	});
+
+    unsigned int dispatch_power = import_watts_;
     unsigned int power = 0;
     for (auto &resource : sub_resources_) {
 		if (dispatch_power > 0) {
-		    // Digital Twin
-		    power = resource->GetRatedImportPower ();
-		    resource->SetImportWatts (power);
-
-		    // AllJoyn Method Call
-		    resource->RemoteImportPower (power);
+			power = resource->GetRatedImportPower ();
+		    if (resource->GetImportPower () == 0) {
+		   	// Digital Twin
+			    resource->SetImportWatts (power);
+			    // AllJoyn Method Call
+			    resource->RemoteExportPower (power);
+		    }
 
 		    // subtract resources power from dispatch power
 		    if (dispatch_power > power) {
@@ -342,7 +347,7 @@ void Aggregator::ImportPower (unsigned int dispatch_power) {
 		   		dispatch_power = 0;
 		    }
 		} else {
-		    break;
+		    return;
 		}
     }
 }  // end Import Power

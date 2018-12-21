@@ -21,10 +21,14 @@ public:
     void SetTargets (const std::vector <std::string> &targets);
     void SetExportWatts (unsigned int power);
     void SetImportWatts (unsigned int power);
+    void SetTime (unsigned int utc);
+    void SetPrice (unsigned int price);
     unsigned int GetTotalExportEnergy ();
     unsigned int GetTotalExportPower ();
     unsigned int GetTotalImportEnergy ();
     unsigned int GetTotalImportPower ();
+    unsigned int GetTime ();
+    unsigned int GetPrice ();
     // aggregator methods
     void AddResource (std::map <std::string, unsigned int>& init,
                       ajn::ProxyBusObject &proxy
@@ -36,7 +40,7 @@ public:
     void Loop (float delta_time);
     void DisplayAllResources ();
     void DisplayTargetResources ();
-    void DisplayTotals ();
+    void DisplaySummary ();
 
 private:
     // config map
@@ -44,6 +48,7 @@ private:
     // logging
     unsigned int last_log_;
     unsigned int log_inc_;
+    std::string log_path_;
     // aggregate
     std::vector <std::shared_ptr <DistributedEnergyResource>> resources_;
     std::vector <std::shared_ptr <DistributedEnergyResource>> sub_resources_;
@@ -57,12 +62,12 @@ private:
     // control properties
     unsigned int export_watts_;
     unsigned int import_watts_;
+    unsigned int price_;
+    unsigned int time_;
     // control methods
     void FilterResources ();
-    void SortImportEnergy ();
-    void SortExportEnergy ();
-    void ExportPower (unsigned int dispatch_power);
-    void ImportPower (unsigned int dispatch_power);
+    void ExportPower ();
+    void ImportPower ();
     void UpdateTotals ();
     void Log ();
 };

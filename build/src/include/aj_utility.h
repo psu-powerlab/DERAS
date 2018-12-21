@@ -274,12 +274,12 @@ static QStatus SetupBusAttachment (tsu::config_map& ini_map,
     }
 
     std::cout << "\t\tBuilding server interface...\n";
-    std::string server_interface = ini_map["AllJoyn"]["server_interface"];
+    std::string server_interface = ini_map["AllJoyn"]["client_interface"];
     status = aj_utility::BuildServerInterface (server_interface, &bus_ref);
     assert (status == ER_OK);
 
     std::cout << "\t\tBuilding device interface...\n";
-    std::string device_interface = ini_map["AllJoyn"]["device_interface"];
+    std::string device_interface = ini_map["AllJoyn"]["server_interface"];
     status = aj_utility::BuildDeviceInterface (device_interface, &bus_ref);
     assert (status == ER_OK);
 

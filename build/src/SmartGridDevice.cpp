@@ -1,19 +1,16 @@
-#include <alljoyn/Status.h>
-#include <alljoyn/BusObject.h>
-#include <alljoyn/BusAttachment.h>
-
-
-#include "include/SmartGridDevice.hpp"
+#include "include/SmartGridDevice.h"
 
 // Constructor
 // - initialize bus object interface and smart grid device properties
 SmartGridDevice::SmartGridDevice (ajn::BusAttachment* bus,
-								  Aggregator* vpp,
+								                  Aggregator* vpp,
                                   const char* name,
                                   const char* path) : ajn::BusObject(path),
                                                       bus_ptr_(bus),
+                                                      signal_(NULL),
                                                       interface_(name),
-                                                      signal_(NULL) {
+                                                      price_(0),
+                                                      time_(0) {
     const ajn::InterfaceDescription* interface 
     	= bus_ptr_->GetInterface(interface_);
     assert(interface != NULL);
@@ -22,7 +19,9 @@ SmartGridDevice::SmartGridDevice (ajn::BusAttachment* bus,
 }
 
 // Destructor
-SmartGridDevice::~SmartGridDevice ()
+SmartGridDevice::~SmartGridDevice () {
+  // do nothing
+}  // end Destructor
 
 // Get
 // - this method will be called by DCS looking to get the updated DERAS

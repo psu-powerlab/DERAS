@@ -8,6 +8,7 @@ export AJ_ROOT=$HOME/src/core-alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp
 export AJ_LIB=$AJ_ROOT/lib
 export AJ_INC=$AJ_ROOT/inc
 export LD_LIBRARY_PATH=$AJ_LIB:$LD_LIBRARY_PATH
+export BOOST_INC=$HOME/src/boost_1_66_0
 
 # alljoyn router
 # first kill any daemon's that are currently running, then start new daemon
@@ -22,4 +23,4 @@ export SRC=deras
 make -C ../build
 
 # run
-./../build/bin/debug/$SRC
+./../build/bin/debug/$SRC -c ../data/config.ini -o n

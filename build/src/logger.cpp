@@ -1,7 +1,7 @@
-#include "include/logger.h"
 #include <iostream>
 #include <fstream>
 #include <ctime>
+#include "include/logger.h"
 
 // the constructor starts the message with DateTime
 Logger::Logger (std::string context, std::string path) 

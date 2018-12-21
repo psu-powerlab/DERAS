@@ -30,7 +30,7 @@
 #ifndef CLIENTLISTENER_H_INCLUDED
 #define CLIENTLISTENER_H_INCLUDED
 
-#include "Aggregator.hpp"
+#include "Aggregator.h"
 
 class ClientListener : public ajn::MessageReceiver,
                        public ajn::Observer::Listener,
