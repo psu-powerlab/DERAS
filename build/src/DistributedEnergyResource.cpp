@@ -318,7 +318,7 @@ void DistributedEnergyResource::ImportPower () {
 
 // Export Power
 // - calculate power/energy change 
-// - degrement export energy and increment import energy
+// - decrement export energy and increment import energy
 void DistributedEnergyResource::ExportPower () {
     float seconds = delta_time_ / 1000;
     float ramp_watts = export_ramp_ * seconds;

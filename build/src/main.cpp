@@ -55,7 +55,7 @@ using namespace ajn;
 
 // GLOBALS
 bool done = false;      // signal program to stop
-extern bool scheduled;  // toggle operator using program args/CLI
+bool scheduled;         // toggle operator using program args/CLI
 
 // Program Help
 // - command line interface arguments during run, [] items have default values
@@ -206,7 +206,7 @@ cout
 
     cout << "Initialization...\n";
     // if the config file is not passed to the program then exit
-   if (strcmp(argv[1], "-c") != 0) {
+   if (argc == 1) {
         string name = argv[0];
         ProgramHelp(name);
         return EXIT_FAILURE;
@@ -222,9 +222,9 @@ cout
 
     // TODO (TS): move the xml2schedule function into the operator class
     cout << "\tCreating Operator\n";
-    std::vector<SetPoint> schedule = xml2schedule(configs["Operator"]["path"]);
+    //std::vector<SetPoint> schedule = xml2schedule(configs["Operator"]["path"]);
     //ScheduleOperator *opr_ptr = new ScheduleOperator("../DERAS/data/timeActExt.csv", vpp_ptr);
-    ScheduleOperator *oper_ptr = new ScheduleOperator(schedule, vpp_ptr);
+    //ScheduleOperator *oper_ptr = new ScheduleOperator(schedule, vpp_ptr);
 
     cout << "\tCreating Command Line Interface\n";
     // ~ reference CommandLineInterface.h
@@ -285,11 +285,11 @@ cout
     // for bus objects.
     // ~ AllJoyn Docs
     const char* client_name = configs["AllJoyn"]["client_interface"].c_str();
-    Observer *obs_ptr = new Observer(*bus_ptr, &client_name, 1);
+    Observer* obs_ptr = new Observer(*bus_ptr, &client_name, 1);
 
-    cout << "\tCreating AllJoyn Server Listener\n";
+    cout << "\tCreating AllJoyn Client Listener\n";
     // ~ reference ClientListener.cpp
-    ClientListener *listner_ptr = new ClientListener(bus_ptr,
+    ClientListener* listner_ptr = new ClientListener(bus_ptr,
                                                      obs_ptr,
                                                      vpp_ptr,
                                                      client_name);
@@ -299,7 +299,7 @@ cout
     // ~ reference SmartGridDevice.cpp
     const char* device_name = configs["AllJoyn"]["server_interface"].c_str();
     const char* path = configs["AllJoyn"]["path"].c_str();
-    SmartGridDevice *sgd_ptr = new SmartGridDevice(bus_ptr, 
+    SmartGridDevice* sgd_ptr = new SmartGridDevice(bus_ptr, 
                                                    vpp_ptr, 
                                                    device_name, 
                                                    path);
@@ -313,10 +313,12 @@ cout
 
     // most objects will have a dedicated thread, but not all
     cout << "\tSpawning threads...\n";
-    thread DER (AggregatorLoop, stoul(configs["Threads"]["sleep"]), vpp_ptr);
+    thread VPP (AggregatorLoop, stoul(configs["Threads"]["sleep"]), vpp_ptr);
+    /*
     thread OPER (
         OperatorLoop, stoul(configs["Threads"]["sleep"]), oper_ptr
     );
+    */
     thread SGD (
         SmartGridDeviceLoop, stoul(configs["Threads"]["sleep"]), sgd_ptr
     );
@@ -337,15 +339,9 @@ cout
 
     // First join all active threads to main thread
     cout << "\tJoining threads\n";
-    DER.join ();
-    OPER.join ();
+    VPP.join ();
+    //OPER.join ();
     SGD.join ();
-
-    cout << "\tUnregistering AllJoyn objects\n";
-    //obs_ptr->UnregisterListener (*listner_ptr);
-    //bus_ptr->UnregisterBusObject(*sgd_ptr);
-    //status = bus_ptr->Stop ();
-    //status = bus_ptr->Join ();
 
     // Then delete all pointers that were created using "new" since they do not
     // automaticall deconstruct at the end of the program.
@@ -355,7 +351,7 @@ cout
     delete obs_ptr;
     delete about_ptr;
     delete bus_ptr;
-    delete oper_ptr;
+    //delete oper_ptr;
     delete vpp_ptr;
 
     #ifdef ROUTER

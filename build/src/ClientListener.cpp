@@ -78,6 +78,7 @@ void ClientListener::PropertiesChanged (ajn::ProxyBusObject& obj,
                                         const ajn::MsgArg& changed,
                                         const ajn::MsgArg& invalidated,
                                         void* context) {
+    std::cout << "DEBUG: Property changed" << std::endl;
     std::map <std::string, unsigned int> init;
     init = ClientListener::MapProperties (changed);
     vpp_ptr_->UpdateResource (init, obj.GetPath ());

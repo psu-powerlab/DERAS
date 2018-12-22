@@ -1,3 +1,7 @@
+#include <alljoyn/Status.h>
+#include <alljoyn/BusObject.h>
+#include <alljoyn/BusAttachment.h>
+#include "include/Aggregator.h"
 #include "include/SmartGridDevice.h"
 
 // Constructor
@@ -7,6 +11,7 @@ SmartGridDevice::SmartGridDevice (ajn::BusAttachment* bus,
                                   const char* name,
                                   const char* path) : ajn::BusObject(path),
                                                       bus_ptr_(bus),
+                                                      vpp_ptr_(vpp),
                                                       signal_(NULL),
                                                       interface_(name),
                                                       price_(0),
@@ -38,7 +43,7 @@ QStatus SmartGridDevice::Get (const char* interface,
         status = value.Set("u", time_);
         return status;
     } else if (!strcmp(property,"price")) {
-        status = value.Set("u", price_);
+        status = value.Set("i", price_);
         return status;
     } else {
         return ER_FAIL;
@@ -58,11 +63,12 @@ const char* props[] = { "time",
 // - connected DCS. This doesn't need a loop to restrict its frequency as it is
 // - dependent on DERAS's property changes.
 void SmartGridDevice::Loop () {
-	unsigned int time = vpp_ptr_->GetTime ();
-	unsigned int price = vpp_ptr_->GetPrice ();
-	if (time != time_ || price != price_) {
-		time_ = time;
-		price_ = price;
-		SmartGridDevice::SendPropertiesUpdate ();
-	}
+    int price = vpp_ptr_->GetPrice ();
+    unsigned int time = vpp_ptr_->GetTime ();
+    if (time != time_ || price != price_) {
+        time_ = time;
+        price_ = price;
+      std::cout << "DEBUG: value change" << std::endl;
+    	SmartGridDevice::SendPropertiesUpdate ();
+    }
 }

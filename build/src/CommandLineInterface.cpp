@@ -4,7 +4,7 @@
 #include <vector>
 #include "include/CommandLineInterface.h"
 
-bool scheduled;  // this variable is a global from main
+extern bool scheduled;  // this variable is a global from main
 
 // Constructor
 // - pass pointer to aggregator object for control
@@ -27,7 +27,8 @@ void CommandLineInterface::Help () {
         << "> t <arg arg...>    set filter targets\n"
         << "> o <y/n>           operator enable/disable\n"
         << "> i <watts>         import power\n"
-        << "> e <watts>         export power\n" << std::endl;
+        << "> e <watts>         export power\n"
+        << "> p <tenths of cent power price\n" << std::endl;
 } // end Help
 
 // Command Line Interface
@@ -108,7 +109,15 @@ bool CommandLineInterface::Control (const std::string& input) {
                 break;
             }
         }
-        
+        case 'p': {
+            try {
+                vpp_ptr_->SetPrice (stoul (tokens.at (1)));
+                break;
+            } catch (...) {
+                std::cout << "[ERROR]: Invalid Argument.\n";
+                break;
+            }
+        }
          default: {
             CommandLineInterface::Help ();
             break;

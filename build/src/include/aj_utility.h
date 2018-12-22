@@ -47,9 +47,9 @@ class SessionPortListener : public ajn::SessionPortListener {
     }
 }; // end SessionPortListener
 
-// BuildDeviceInterface
+// Build Client Interface
 // - method to build alljoyn interface for DER
-static QStatus BuildDeviceInterface (std::string name,
+static QStatus BuildClientInterface (std::string name,
                                      ajn::BusAttachment* bus_ptr) {
     QStatus status;
     const char* interface_name = name.c_str();
@@ -236,7 +236,7 @@ static QStatus BuildServerInterface (std::string name,
     );
     assert (status == ER_OK);
 
-    status = interface->AddProperty("price", "u", ajn::PROP_ACCESS_READ);
+    status = interface->AddProperty("price", "i", ajn::PROP_ACCESS_READ);
     assert (status == ER_OK);
 
     status = interface->AddPropertyAnnotation(
@@ -274,13 +274,13 @@ static QStatus SetupBusAttachment (tsu::config_map& ini_map,
     }
 
     std::cout << "\t\tBuilding server interface...\n";
-    std::string server_interface = ini_map["AllJoyn"]["client_interface"];
-    status = aj_utility::BuildServerInterface (server_interface, &bus_ref);
+    std::string client_interface = ini_map["AllJoyn"]["client_interface"];
+    status = aj_utility::BuildClientInterface (client_interface, &bus_ref);
     assert (status == ER_OK);
 
-    std::cout << "\t\tBuilding device interface...\n";
+    std::cout << "\t\tBuilding client interface...\n";
     std::string device_interface = ini_map["AllJoyn"]["server_interface"];
-    status = aj_utility::BuildDeviceInterface (device_interface, &bus_ref);
+    status = aj_utility::BuildServerInterface (device_interface, &bus_ref);
     assert (status == ER_OK);
 
     ajn::SessionOpts opts(ajn::SessionOpts::TRAFFIC_MESSAGES,

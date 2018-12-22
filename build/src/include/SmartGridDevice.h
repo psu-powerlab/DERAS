@@ -29,11 +29,6 @@
 #ifndef SMARTGRIDDEVICE_HPP_INCLUDED
 #define SMARTGRIDDEVICE_HPP_INCLUDED
 
-#include <alljoyn/Status.h>
-#include <alljoyn/BusObject.h>
-#include <alljoyn/BusAttachment.h>
-#include "Aggregator.h"
-
 class SmartGridDevice : public ajn::BusObject {
 public:
     // member methods
@@ -57,7 +52,7 @@ private:
     // properties
     const char* interface_;
     const char* name_;
-    unsigned int price_;
+    int price_;
     unsigned int time_;
 
 

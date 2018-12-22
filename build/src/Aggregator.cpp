@@ -21,7 +21,10 @@ Aggregator::Aggregator (tsu::config_map &init) :
 	total_import_energy_(0),
 	total_import_power_(0),
 	export_watts_(0),
-	import_watts_(0) {
+	import_watts_(0),
+	price_(0),
+	time_(0) {
+	// do nothing
 }  // end constructor
 
 Aggregator::~Aggregator () {
@@ -249,22 +252,30 @@ void Aggregator::DisplaySummary () {
 		<< "\n\tTotal Import Power = " << total_import_power_ << std::endl;
 }
 
+// Filter Resources
+// - filter resources by target arguments.
+// - if target arguments is empty, then default to all resources
 void Aggregator::FilterResources () {
     sub_resources_.clear();
-    for (const auto &resource : resources_) {
-        bool found;
-        for (unsigned int i = 0; i < targets_.size(); i++) {
-            if (resource->GetPath().find(targets_[i])!= std::string::npos) {
-                found = true;
-            } else {
-                found = false;
-                break;
-            }
-        }
-        if (found) {
-            sub_resources_.push_back(resource);
-        }
+    if (targets_.size() == 0) {
+    	sub_resources_ = resources_;
+    } else {
+	    for (const auto &resource : resources_) {
+	        bool found;
+	        for (unsigned int i = 0; i < targets_.size(); i++) {
+	            if (resource->GetPath().find(targets_[i])!= std::string::npos) {
+	                found = true;
+	            } else {
+	                found = false;
+	                break;
+	            }
+	        }
+	        if (found) {
+	            sub_resources_.push_back(resource);
+	        }
+	    }	
     }
+
 }
 
 // Export Power
@@ -304,6 +315,12 @@ void Aggregator::ExportPower () {
 		   		dispatch_power = 0;
 		    }
 		} else {
+		    if (resource->GetExportPower () != 0) {
+		   	// Digital Twin
+			    resource->SetExportWatts (0);
+			    // AllJoyn Method Call
+			    resource->RemoteExportPower (0);
+		    }
 		    return;
 		}
     }
@@ -347,6 +364,12 @@ void Aggregator::ImportPower () {
 		   		dispatch_power = 0;
 		    }
 		} else {
+		    if (resource->GetImportPower () != 0) {
+		   	// Digital Twin
+			    resource->SetImportWatts (0);
+			    // AllJoyn Method Call
+			    resource->RemoteExportPower (0);
+		    }
 		    return;
 		}
     }
