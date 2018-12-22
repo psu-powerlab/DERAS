@@ -181,13 +181,8 @@ void Aggregator::Loop (float delta_time) {
 		resource->Loop (delta_time);
     }
 	Aggregator::UpdateTotals ();
-
-    // check import / export watts
-	if (import_watts_ > 0) {
-        Aggregator::ImportPower ();
-    } else if (export_watts_ > 0) {
-        Aggregator::ExportPower ();
-    }
+	Aggregator::ExportPower ();
+	Aggregator::ImportPower ();
     Aggregator::Log ();
 }  // end Loop
 
@@ -238,9 +233,9 @@ void Aggregator::UpdateTotals () {
 	total_import_power_ = 0;
     for (const auto &resource : sub_resources_) {
 		total_export_energy_ += resource->GetExportEnergy ();
-		total_export_power_ += resource->GetExportPower ();
+		total_export_power_ += resource->GetRatedExportPower ();
 		total_import_energy_ += resource->GetImportEnergy ();
-		total_import_power_ += resource->GetImportPower ();    	
+		total_import_power_ += resource->GetRatedImportPower ();    	
     }
 }
 
@@ -303,9 +298,7 @@ void Aggregator::ExportPower () {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedExportPower ();
 		    if (resource->GetExportPower () == 0) {
-		   	// Digital Twin
-			    resource->SetExportWatts (power);
-			    // AllJoyn Method Call
+		   		// AllJoyn Method Call and digital twin
 			    resource->RemoteExportPower (power);
 		    }
 		    // subtract resources power from dispatch power
@@ -314,14 +307,13 @@ void Aggregator::ExportPower () {
 		    } else {
 		   		dispatch_power = 0;
 		    }
+		// once dispatch has been met tell other resources to stop exporting
 		} else {
 		    if (resource->GetExportPower () != 0) {
-		   	// Digital Twin
-			    resource->SetExportWatts (0);
+		    	std::cout << "DEBUG: export power off\n";
 			    // AllJoyn Method Call
 			    resource->RemoteExportPower (0);
 		    }
-		    return;
 		}
     }
 }  // end Export Power
@@ -351,10 +343,8 @@ void Aggregator::ImportPower () {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedImportPower ();
 		    if (resource->GetImportPower () == 0) {
-		   	// Digital Twin
-			    resource->SetImportWatts (power);
-			    // AllJoyn Method Call
-			    resource->RemoteExportPower (power);
+			    // AllJoyn Method Call and digital twin
+			    resource->RemoteImportPower (power);
 		    }
 
 		    // subtract resources power from dispatch power
@@ -363,14 +353,13 @@ void Aggregator::ImportPower () {
 		    } else {
 		   		dispatch_power = 0;
 		    }
+		// once dispatch has been met tell other resources to stop importing
 		} else {
 		    if (resource->GetImportPower () != 0) {
-		   	// Digital Twin
-			    resource->SetImportWatts (0);
+		    	std::cout << "DEBUG: import power off\n";
 			    // AllJoyn Method Call
-			    resource->RemoteExportPower (0);
+			    resource->RemoteImportPower (0);
 		    }
-		    return;
 		}
     }
 }  // end Import Power

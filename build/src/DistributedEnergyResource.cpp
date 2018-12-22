@@ -83,8 +83,10 @@ void DistributedEnergyResource::Print () {
     std::cout
         << "\tExport Energy:\t" << export_energy_ << '\n'
         << "\tExport Power:\t" << export_power_ << '\n'
+        << "\tExport watts:\t" << export_watts_ << '\n'
         << "\tImport Energy:\t" << import_energy_ << '\n'
-        << "\tImport Power:\t" << import_power_ << std::endl;
+        << "\tImport Power:\t" << import_power_ << '\n'
+        << "\tImport watts:\t" << import_watts_ << '\n'<< std::endl;
 }
 
 // Set Export Watts
@@ -93,6 +95,7 @@ void DistributedEnergyResource::Print () {
 void DistributedEnergyResource::SetExportWatts (unsigned int power) {
     import_watts_ = 0;
     import_power_ = 0;
+
     if (power > rated_export_power_) {
         export_watts_ = rated_export_power_;
     } else {
@@ -355,6 +358,10 @@ void DistributedEnergyResource::ExportPower () {
 // Idle Loss
 // - update energy available based on energy lost
 void DistributedEnergyResource::IdleLoss () {
+    // set import/export power to zero
+    DistributedEnergyResource::SetImportPower (0);
+    DistributedEnergyResource::SetExportPower (0);
+    // set import / export idle loss energy changes
     float seconds = delta_time_ / 1000;
     float hours = seconds / (60*60);
     float energy_loss = idle_losses_ * hours;
