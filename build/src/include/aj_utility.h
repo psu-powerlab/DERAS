@@ -246,6 +246,16 @@ static QStatus BuildServerInterface (std::string name,
     );
     assert (status == ER_OK);
 
+    status = interface->AddProperty("temperature", "i", ajn::PROP_ACCESS_READ);
+    assert (status == ER_OK);
+
+    status = interface->AddPropertyAnnotation(
+        "price",
+        "org.freedesktop.DBus.Property.EmitsChangedSignal",
+        "true"
+    );
+    assert (status == ER_OK);
+
     std::cout << "\t\tActivating Interface\n";
     interface->Activate();
 

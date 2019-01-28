@@ -24,11 +24,12 @@ void CommandLineInterface::Help () {
         << "> a                 display all resources\n"
         << "> f                 display filtered resources\n"
         << "> s                 display summary\n"
-        << "> t <arg arg...>    set filter targets\n"
+        << "> t <arg arg...>    targets filter\n"
         << "> o <y/n>           operator enable/disable\n"
         << "> i <watts>         import power\n"
         << "> e <watts>         export power\n"
-        << "> p <tenths of cent power price\n" << std::endl;
+        << "> p <1/10 of cent>  power price\n"
+        << "> w <F>             weather (deg. F)\n" << std::endl;
 } // end Help
 
 // Command Line Interface
@@ -118,7 +119,16 @@ bool CommandLineInterface::Control (const std::string& input) {
                 break;
             }
         }
-         default: {
+        case 'w': {
+            try {
+                vpp_ptr_->SetTemperature (stoi (tokens.at (1)));
+                break;
+            } catch (...) {
+                std::cout << "[ERROR]: Invalid Argument.\n";
+                break;
+            }
+        }
+        default: {
             CommandLineInterface::Help ();
             break;
         }

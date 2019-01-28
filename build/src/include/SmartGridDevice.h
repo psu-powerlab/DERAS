@@ -53,6 +53,7 @@ private:
     const char* interface_;
     const char* name_;
     int price_;
+    int temp_;
     unsigned int time_;
 
 

@@ -23,7 +23,8 @@ Aggregator::Aggregator (tsu::config_map &init) :
 	export_watts_(0),
 	import_watts_(0),
 	price_(0),
-	time_(0) {
+	time_(0),
+	temperature_(0) {
 	// do nothing
 }  // end constructor
 
@@ -62,9 +63,15 @@ void Aggregator::SetImportWatts (unsigned int power) {
 
 // Set Price
 // - the tenths of a cent per kWh
-void Aggregator::SetPrice (unsigned int price) {
+void Aggregator::SetPrice (int price) {
 	price_ = price;
 }  // end Set Price
+
+// Set Temperature
+// - Set the local temperature in F
+void Aggregator::SetTemperature (int temperature) {
+	temperature_ = temperature;
+}  // end Set Temperature
 
 // Set Time
 // - the UTC time as seconds from epoch
@@ -98,7 +105,7 @@ unsigned int Aggregator::GetTotalImportPower () {
 
 // Get Price
 // - return tenths of a cent per kWh for electricity
-unsigned int Aggregator::GetPrice () {
+int Aggregator::GetPrice () {
 	return price_;
 }  // end Get Price
 
@@ -107,6 +114,12 @@ unsigned int Aggregator::GetPrice () {
 unsigned int Aggregator::GetTime () {
 	return time_;
 }  // end Get Time
+
+// Get Temperature
+// - return the local temperature in F
+int Aggregator::GetTemperature () {
+	return temperature_;
+}  // end Get Temperature
 
 // Add Resource
 // - This is used by the Client Listener class to add newly discovered DER.

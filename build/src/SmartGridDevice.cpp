@@ -15,7 +15,8 @@ SmartGridDevice::SmartGridDevice (ajn::BusAttachment* bus,
                                                       signal_(NULL),
                                                       interface_(name),
                                                       price_(0),
-                                                      time_(0) {
+                                                      time_(0),
+                                                      temp_(0) {
     const ajn::InterfaceDescription* interface 
     	= bus_ptr_->GetInterface(interface_);
     assert(interface != NULL);
@@ -45,16 +46,21 @@ QStatus SmartGridDevice::Get (const char* interface,
     } else if (!strcmp(property,"price")) {
         status = value.Set("i", price_);
         return status;
+    } else if (!strcmp(property,"temperature")) {
+        status = value.Set("i", temp_);
+        return status;
     } else {
         return ER_FAIL;
     }
 } // end Get
 
 QStatus SmartGridDevice::SendPropertiesUpdate () {
-const char* props[] = { "time",
-                        "price"};
+  const char* props[] = { "time",
+                          "price",
+                          "temperature"};
     QStatus status;
     status = EmitPropChanged (interface_, props, 2, ajn::SESSION_ID_ALL_HOSTED);
+    std::cout << "[AllJoyn]: DERAS properties changed signal." << std::endl;
     return status;
 }  // end Send Properties Update
 
@@ -64,11 +70,12 @@ const char* props[] = { "time",
 // - dependent on DERAS's property changes.
 void SmartGridDevice::Loop () {
     int price = vpp_ptr_->GetPrice ();
+    int temp = vpp_ptr_->GetTemperature ();
     unsigned int time = vpp_ptr_->GetTime ();
-    if (time != time_ || price != price_) {
+    if (time != time_ || price != price_ || temp != temp_) {
         time_ = time;
         price_ = price;
-      std::cout << "DEBUG: value change" << std::endl;
+        temp_ = temp;
     	SmartGridDevice::SendPropertiesUpdate ();
     }
 }

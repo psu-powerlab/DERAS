@@ -22,13 +22,15 @@ public:
     void SetExportWatts (unsigned int power);
     void SetImportWatts (unsigned int power);
     void SetTime (unsigned int utc);
-    void SetPrice (unsigned int price);
+    void SetPrice (int price);
+    void SetTemperature (int temperature);
     unsigned int GetTotalExportEnergy ();
     unsigned int GetTotalExportPower ();
     unsigned int GetTotalImportEnergy ();
     unsigned int GetTotalImportPower ();
     unsigned int GetTime ();
-    unsigned int GetPrice ();
+    int GetPrice ();
+    int GetTemperature ();
     // aggregator methods
     void AddResource (std::map <std::string, unsigned int>& init,
                       ajn::ProxyBusObject &proxy
@@ -62,8 +64,9 @@ private:
     // control properties
     unsigned int export_watts_;
     unsigned int import_watts_;
-    unsigned int price_;
+    int price_;
     unsigned int time_;
+    int temperature_;
     // control methods
     void FilterResources ();
     void ExportPower ();
