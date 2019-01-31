@@ -37,17 +37,13 @@
 #include <string>
 #include <vector>
 
-#include "include/SetPoint.h"
-#include "include/xml2schedule.h"
-//#include "include/schedulizer.h"
 #include "include/tsu.h"
 #include "include/aj_utility.h"
 #include "include/Aggregator.h"
-#include "include/DistributedEnergyResource.h"
 #include "include/CommandLineInterface.h"
 #include "include/ClientListener.h"
 #include "include/SmartGridDevice.h"
-#include "include/ScheduleOperator.h"
+#include "include/Operator.h"
 
 // NAMESPACES
 using namespace std;
@@ -55,7 +51,6 @@ using namespace ajn;
 
 // GLOBALS
 bool done = false;      // signal program to stop
-bool scheduled;         // toggle operator using program args/CLI
 
 // Program Help
 // - command line interface arguments during run, [] items have default values
@@ -72,7 +67,6 @@ static void ProgramHelp (const string& name) {
 static std::map <std::string, std::string> ArgumentParser (int argc, 
                                                            char** argv) {
     string name = argv[0];
-    scheduled = false;
 
     // parse tokens
     map <string, string> parameters;
@@ -96,16 +90,6 @@ static std::map <std::string, std::string> ArgumentParser (int argc,
             exit(EXIT_FAILURE);
         } else if ((token == "-c")) {
             parameters["config"] = argument;
-        } else if ((token == "-o")) {
-            if ((argument == "y")) {
-                scheduled = true;
-            } else if ((argument == "n")) {
-                scheduled = false;
-            } else {
-                cout << "[ERROR] : Invalid program argument: " << token << endl;
-                ProgramHelp(name);
-                exit(EXIT_FAILURE); 
-            }
         } else {
             cout << "[ERROR] : Invalid parameter: " << token << endl;
             ProgramHelp(name);
@@ -150,14 +134,14 @@ void AggregatorLoop (unsigned int sleep, Aggregator* vpp_ptr) {
 // - this loop runs the resource control loop at the desired frequency
 // - it subtracks processing time of the Loop () function to make the frequency
 // - more consistant
-void OperatorLoop (unsigned int sleep, ScheduleOperator* oper_ptr) {
+void OperatorLoop (unsigned int sleep, Operator* oper_ptr) {
     unsigned int time_remaining;
     unsigned int time_wait = sleep;
     auto time_start = chrono::high_resolution_clock::now();
     auto time_end = chrono::high_resolution_clock::now();
     chrono::duration<double, milli> time_elapsed;
 
-    while (!done && scheduled) {
+    while (!done) {
         time_start = chrono::high_resolution_clock::now();
         oper_ptr->Loop();
         time_end = chrono::high_resolution_clock::now();
@@ -220,15 +204,12 @@ cout
     // ~ reference Aggregator
     Aggregator* vpp_ptr = new Aggregator (configs);
 
-    // TODO (TS): move the xml2schedule function into the operator class
     cout << "\tCreating Operator\n";
-    //std::vector<SetPoint> schedule = xml2schedule(configs["Operator"]["path"]);
-    //ScheduleOperator *opr_ptr = new ScheduleOperator("../DERAS/data/timeActExt.csv", vpp_ptr);
-    //ScheduleOperator *oper_ptr = new ScheduleOperator(schedule, vpp_ptr);
+    Operator* oper_ptr = new Operator(configs["Operator"], vpp_ptr);
 
     cout << "\tCreating Command Line Interface\n";
     // ~ reference CommandLineInterface.h
-    CommandLineInterface CLI(vpp_ptr);
+    CommandLineInterface CLI(vpp_ptr, oper_ptr);
 
     cout << "\tCreating AllJoyn Message Bus\n";
     try {
@@ -314,11 +295,11 @@ cout
     // most objects will have a dedicated thread, but not all
     cout << "\tSpawning threads...\n";
     thread VPP (AggregatorLoop, stoul(configs["Threads"]["sleep"]), vpp_ptr);
-    /*
+
     thread OPER (
         OperatorLoop, stoul(configs["Threads"]["sleep"]), oper_ptr
     );
-    */
+
     thread SGD (
         SmartGridDeviceLoop, stoul(configs["Threads"]["sleep"]), sgd_ptr
     );
@@ -340,7 +321,7 @@ cout
     // First join all active threads to main thread
     cout << "\tJoining threads\n";
     VPP.join ();
-    //OPER.join ();
+    OPER.join ();
     SGD.join ();
 
     // Then delete all pointers that were created using "new" since they do not
@@ -351,7 +332,7 @@ cout
     delete obs_ptr;
     delete about_ptr;
     delete bus_ptr;
-    //delete oper_ptr;
+    delete oper_ptr;
     delete vpp_ptr;
 
     #ifdef ROUTER

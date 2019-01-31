@@ -4,11 +4,10 @@
 #include <vector>
 #include "include/CommandLineInterface.h"
 
-extern bool scheduled;  // this variable is a global from main
-
 // Constructor
 // - pass pointer to aggregator object for control
-CommandLineInterface::CommandLineInterface (Aggregator* vpp) : vpp_ptr_(vpp) {
+CommandLineInterface::CommandLineInterface (Aggregator* vpp, Operator* opr) 
+    : vpp_ptr_(vpp), oper_ptr_(opr) {
 }  // end constructor
 
 CommandLineInterface::~CommandLineInterface () {
@@ -25,11 +24,18 @@ void CommandLineInterface::Help () {
         << "> f                 display filtered resources\n"
         << "> s                 display summary\n"
         << "> t <arg arg...>    targets filter\n"
-        << "> o <y/n>           operator enable/disable\n"
         << "> i <watts>         import power\n"
         << "> e <watts>         export power\n"
         << "> p <1/10 of cent>  power price\n"
-        << "> w <F>             weather (deg. F)\n" << std::endl;
+        << "> w <F>             weather (deg. F)\n"
+        << "> o <service>       set operator service\n"
+        << "                    OFF: disable operator\n"
+        << "                    PJMA: Regulation A\n"
+        << "                    PJMD: Regulation D\n"
+        << "                    EIM: Energy Imbalance Market\n"
+        << "                    TOU: Time of Use\n"
+        << "                    PDM: Peak Demand Mitigation\n"
+        << "                    FER: Frequency Event Response\n" << std::endl;
 } // end Help
 
 // Command Line Interface
@@ -79,13 +85,7 @@ bool CommandLineInterface::Control (const std::string& input) {
         }
         case 'o': {
             try {
-                if (tokens.at(1) == "n") {
-                    scheduled = false;
-                } else if (tokens.at(1) == "y") {
-                    scheduled = true;
-                } else {
-                    throw;
-                }
+                oper_ptr_->SetService(tokens.at (1));
                 break;
             } catch(...) {
                 std::cout << "[ERROR]: Invalid Argument.\n";

@@ -3,8 +3,8 @@
 // - services. Each services as a formated schedule that dictates the required
 // - inputs for operation. 
 
-#ifndef OPERATOR_H
-#define OPERATOR_H
+#ifndef OPERATOR_H_INCLUDED
+#define OPERATOR_H_INCLUDED
 
 #include <string>
 #include <vector>
@@ -36,17 +36,9 @@ private:
 	unsigned int pdm_index_;
 	unsigned int fer_index_;
 
-	// schedules
-	std::vector <RowPJM> schedule_pjm_a_;
-	std::vector <RowPJM> schedule_pjm_d_;
-	std::vector <RowEIM> schedule_eim_;
-	std::vector <RowTOU> schedule_tou_;
-	std::vector <RowPDM> schedule_pdm_;
-	std::vector <RowFER> schedule_fer_;
-
 	// read service schedules
-	void GetPJMRegA ();
-	void GetPJMRegD ();
+	void GetPJMA ();
+	void GetPJMD ();
 	void GetEIM ();
 	void GetTOU ();
 	void GetPDM ();
@@ -82,9 +74,10 @@ private:
     struct RowTOU {
         unsigned int utc;
         float real_time_price;
+        float day_ahead_price;
 
-        RowTOU (unsigned int time, float real_time)
-            : utc(time), real_time_price(real_time) {
+        RowTOU (unsigned int time, float real_time, float day_ahead)
+            : utc(time), real_time_price(real_time), day_ahead_price(day_ahead){
         };
     };
 
@@ -106,6 +99,14 @@ private:
         };
     };
 
+	// schedules
+	std::vector <RowPJM> schedule_pjm_a_;
+	std::vector <RowPJM> schedule_pjm_d_;
+	std::vector <RowEIM> schedule_eim_;
+	std::vector <RowTOU> schedule_tou_;
+	std::vector <RowPDM> schedule_pdm_;
+	std::vector <RowFER> schedule_fer_;
+
 	enum Months {
 		JAN, FEB, MAR, APR, MAY, JUN, JUL, AUG, SEP, OCT, NOV, DEC
 	};
@@ -113,6 +114,6 @@ private:
 	enum Tiers {
 		OFF_PEAK, MID_PEAK, ON_PEAK
 	};
-}
+};
 
-#endif  // OPERATOR_H
+#endif  // OPERATOR_H_INCLUDED

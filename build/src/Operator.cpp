@@ -9,12 +9,13 @@ Operator::Operator (std::map <std::string, std::string>& init,
 					: vpp_ptr_(vpp_pointer),
 					  configs_(init),
 					  service_(""),
-					  pjm_index_(0),
+					  tou_tier_(0),
+					  pjm_a_index_(0),
+					  pjm_d_index_(0),
 					  eim_index_(0),
 					  tou_index_(0),
 					  pdm_index_(0),
-					  fer_index_(0),
-					  tou_tier_(0) {
+					  fer_index_(0) {
 	// do nothing
 };
 
@@ -26,12 +27,12 @@ Operator::~Operator () {
 // Loop
 // - used to determine which services is active and call appropriate method
 void Operator::Loop () {
-	if (service_ == "") {
+	if (service_ == "OFF") {
 		// do nothing
 	} else if (service_ == "PJMA") {
-		Operator::ServicePJMRegA ();
+		Operator::ServicePJMA ();
 	} else if (service_ == "PJMD") {
-		Operator::ServicePJMRegD ();
+		Operator::ServicePJMD ();
 	} else if (service_ == "EIM") {
 		Operator::ServiceEIM ();
 	} else if (service_ == "TOU") {
@@ -45,17 +46,17 @@ void Operator::Loop () {
 
 // Set Service
 // - mutator for the service variable
-void SetService (std::string service) {
+void Operator::SetService (std::string service) {
 	if (service == "PJMA"
 		|| service == "PJMD"
 		|| service == "EIM" 
 		|| service == "TOU" 
 		|| service == "PDM"
-		|| service == "FER") {
-		service_ = service_;		
+		|| service == "FER"
+		|| service == "OFF") {
+		service_ = service;		
 	} else {
-		std::cout << "Set Service Error: Invalid service type." 
-		<< "\n\tchoose: PJMA, PJMD, EIM, TOU, PDM, or FER" << std::endl;
+		std::cout << "Set Service Error: Invalid service type." << std::endl;
 	}
 };  // end Set Service
 
@@ -63,12 +64,12 @@ void SetService (std::string service) {
 // - read the PJM schedule and format for use
 void Operator::GetPJMA () {
 	tsu::string_matrix schedule 
-		= tsu::FileToMatrix (configs_["pjma_filepath"]);
+		= tsu::FileToMatrix (configs_["pjma_filepath"], ',', 2);
 	struct tm tm;
 	unsigned int time;
 	float percent_power;
 	schedule_pjm_a_.reserve (schedule.size ());
-	schedule_pjm_a_.erase (schedule_pjm_a_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    // http://man7.org/linux/man-pages/man3/strptime.3.html
 	    strptime(row.at (0).c_str(), configs_["pjma_time_format"].c_str(), &tm);
@@ -87,7 +88,7 @@ void Operator::GetPJMD () {
 	unsigned int time;
 	float percent_power;
 	schedule_pjm_d_.reserve (schedule.size ());
-	schedule_pjm_d_.erase (schedule_pjm_d_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    strptime(row.at (0).c_str(), configs_["pjmd_time_format"].c_str(), &tm);
 	    time = std::mktime (&tm);
@@ -105,7 +106,7 @@ void Operator::GetEIM () {
 	unsigned int time;
 	float percent_power;
 	schedule_eim_.reserve (schedule.size ());
-	schedule_eim_.erase (schedule_eim_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    strptime(row.at (0).c_str(), configs_["eim_time_format"].c_str(), &tm);
 	    time = std::mktime (&tm);
@@ -124,13 +125,13 @@ void Operator::GetTOU () {
 	float day_ahead;
 	float real_time;
 	schedule_tou_.reserve (schedule.size ());
-	schedule_tou_.erase (schedule_tou_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    strptime(row.at (0).c_str(), configs_["tou_time_format"].c_str(), &tm);
 	    time = std::mktime (&tm);
 		day_ahead = stof (row.at (1));
 		real_time = stof (row.at (2));
-		schedule_tou_.emplace_back(time, day_ahead, real_time);
+		schedule_tou_.emplace_back(time, real_time, day_ahead);
 	}
 };  // end Get TOU
 
@@ -143,7 +144,7 @@ void Operator::GetPDM () {
 	unsigned int time;
 	int fahrenheit;
 	schedule_pdm_.reserve (schedule.size ());
-	schedule_pdm_.erase (schedule_pdm_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    strptime(row.at (0).c_str(), configs_["pdm_time_format"].c_str(), &tm);
 	    time = std::mktime (&tm);
@@ -161,7 +162,7 @@ void Operator::GetFER () {
 	unsigned int time;
 	float hertz;
 	schedule_fer_.reserve (schedule.size ());
-	schedule_fer_.erase (schedule_fer_.begin ());  // remove header
+	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    strptime(row.at (0).c_str(), configs_["fer_time_format"].c_str(), &tm);
 	    time = std::mktime (&tm);
@@ -175,7 +176,7 @@ void Operator::GetFER () {
 // - regulating resources. Please reference PJM's Manual 12 for more information
 // - The services will used the vpp resource info to determine dispatch and call
 // - the appropriate control method.
-void Operator::ServicePJMRegA () {
+void Operator::ServicePJMA () {
 	// if the schedule has not been read, then load it into memory
 	if (schedule_pjm_a_.empty()) {
 		Operator::GetPJMA ();
@@ -184,24 +185,30 @@ void Operator::ServicePJMRegA () {
 	// get current utc and modulo the date info out since it isn't required for
 	// our tests.
 	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = time(nullptr) % seconds_per_day;
+	unsigned int utc = std::time(nullptr) % seconds_per_day;
 
     // loop through each row of schedule looking for current utc
-    for (unsigned int i = pjm_a_index_; i < schedule_.size(); i++) {
-        RowPJMA& row = schedule_pjm_a_.at (i);
+    for (unsigned int i = pjm_a_index_; i < schedule_pjm_a_.size(); i++) {
+        RowPJM& row = schedule_pjm_a_.at (i);
 
         if (row.utc == utc && pjm_a_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
             	float dispatch_watts = available_watts * row.normalized_power;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalExportPower ();
             	float dispatch_watts = available_watts*(-row.normalized_power);
                 vpp_ptr_->SetExportWatts (dispatch_watts);
             } else {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
                 vpp_ptr_->SetImportWatts (0);
             }
 
@@ -217,7 +224,7 @@ void Operator::ServicePJMRegA () {
 // - regulating resources. Please reference PJM's Manual 12 for more information
 // - The services will used the vpp resource info to determine dispatch and call
 // - the appropriate control method.
-void Operator::ServicePJMRegA () {
+void Operator::ServicePJMD () {
 	// if the schedule has not been read, then load it into memory
 	if (schedule_pjm_d_.empty()) {
 		Operator::GetPJMD ();
@@ -226,24 +233,30 @@ void Operator::ServicePJMRegA () {
 	// get current utc and modulo the date info out since it isn't required for
 	// our tests.
 	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = time(nullptr) % seconds_per_day;
+	unsigned int utc = std::time(nullptr) % seconds_per_day;
 
     // loop through each row of schedule looking for current utc
-    for (unsigned int i = pjm_d_index_; i < schedule_.size(); i++) {
-        RowPJMD& row = schedule_pjm_d_.at (i);
+    for (unsigned int i = pjm_d_index_; i < schedule_pjm_d_.size(); i++) {
+        RowPJM& row = schedule_pjm_d_.at (i);
 
         if (row.utc == utc && pjm_d_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
             	float dispatch_watts = available_watts * row.normalized_power;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalExportPower ();
             	float dispatch_watts = available_watts*(-row.normalized_power);
                 vpp_ptr_->SetExportWatts (dispatch_watts);
             } else {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
                 vpp_ptr_->SetImportWatts (0);
             }
 
@@ -267,24 +280,30 @@ void Operator::ServiceEIM () {
 	// get current utc and modulo the date info out since it isn't required for
 	// our tests.
 	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = time(nullptr) % seconds_per_day;
+	unsigned int utc = std::time(nullptr) % seconds_per_day;
 
     // loop through each row of schedule looking for current utc
-    for (unsigned int i = eim_index_; i < schedule_.size(); i++) {
+    for (unsigned int i = eim_index_; i < schedule_eim_.size(); i++) {
         RowEIM& row = schedule_eim_.at (i);
 
         if (row.utc == utc && eim_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
             	float dispatch_watts = available_watts * row.normalized_power;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
+	        	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalExportPower ();
             	float dispatch_watts = available_watts*(-row.normalized_power);
                 vpp_ptr_->SetExportWatts (dispatch_watts);
             } else {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
                 vpp_ptr_->SetImportWatts (0);
             }
 
@@ -302,54 +321,61 @@ void Operator::ServiceTOU () {
 	// get current utc and modulo the date info out since it isn't required for
 	// our tests.
 	unsigned int seconds_per_day = 60*60*24;
-	time_t time = time(nullptr);
+	time_t time = std::time(nullptr);
 	unsigned int utc = time % seconds_per_day;
-	struct tm time_info = localtime (&time);
 
-	//  every minute check total energy 
-    if (utc % 60 == 0 && tou_index_ != i) {
-
+	// Every minute determine TOU tier and set import/export accordingly
+    if (utc % 60 == 0 && tou_index_ != utc) {
         // check season for tou tiers
+        struct tm time_info = *std::localtime (&time);
         int month = time_info.tm_mon + 1;
         int hour = time_info.tm_hour;
-        int tier;
-        if (Month >= MAY || month <= OCT) {
+        if (month >= MAY || month <= OCT) {
         	// SUMMER TOU
         	if (hour >= 22 || hour < 6) {
-        		tier = OFF_PEAK;
+        		tou_tier_ = OFF_PEAK;
         	} else if (hour >= 6 || hour < 15) {
-        		tier = MID_PEAK;
+        		tou_tier_ = MID_PEAK;
         	} else if (hour >= 15 || hour < 20) {
-        		tier = ON_PEAK;
+        		tou_tier_ = ON_PEAK;
         	} else {
-        		tier = MID_PEAK;
+        		tou_tier_ = MID_PEAK;
         	}
         } else {
         	// WINTER TOU
         	if (hour >= 22 || hour < 6) {
-        		tier = OFF_PEAK;
+        		tou_tier_ = OFF_PEAK;
         	} else if (hour >= 6 || hour < 10) {
-        		tier = ON_PEAK;
+        		tou_tier_ = ON_PEAK;
         	} else if (hour >= 10 || hour < 17) {
-        		tier = MID_PEAK;
+        		tou_tier_ = MID_PEAK;
         	} else if (hour >= 17|| hour < 20) {
-        		tier = ON_PEAK;
+        		tou_tier_ = ON_PEAK;
         	} else {
-        		tier = MID_PEAK;
+        		tou_tier_ = MID_PEAK;
         	}
         }
 
-        if (row.price > 0) {
+        if (tou_tier_ == ON_PEAK) {
+        	// sell as much as possible
+        	std::vector <std::string> targets = {""};
+        	vpp_ptr_->SetTargets(targets);
+	    	float available_watts = vpp_ptr_->GetTotalExportPower ();
+	        vpp_ptr_->SetExportWatts (available_watts);
+        } else if (tou_tier_ == MID_PEAK) {
+        	// only import on priority loads that cannot be time shifted
+        	std::vector <std::string> targets = {"buffer"};
+        	vpp_ptr_->SetTargets(targets);
         	float available_watts = vpp_ptr_->GetTotalImportPower ();
-        	float dispatch_watts = available_watts * row.normalized_power;
-            vpp_ptr_->SetImportWatts (dispatch_watts);
-        } else if (row.normalized_power < 0) {
-        	float available_watts = vpp_ptr_->GetTotalExportPower ();
-        	float dispatch_watts = available_watts*(-row.normalized_power);
-            vpp_ptr_->SetExportWatts (dispatch_watts);
+            vpp_ptr_->SetImportWatts (available_watts);
         } else {
-            vpp_ptr_->SetImportWatts (0);
+        	// import as much as possible
+        	std::vector <std::string> targets = {""};
+        	vpp_ptr_->SetTargets(targets);
+        	float available_watts = vpp_ptr_->GetTotalImportPower ();
+            vpp_ptr_->SetImportWatts (available_watts);
         }
+        tou_index_ = utc;
     }
 };  // end Service TOU
 
@@ -357,7 +383,44 @@ void Operator::ServiceTOU () {
 // - PDM is the Peak Demand Mitigation and will try to reduce peak power under
 // - specified conditions
 void Operator::ServicePDM () {
-	
+	// if the schedule has not been read, then load it into memory
+	if (schedule_pdm_.empty()) {
+		Operator::GetPDM ();
+	}
+
+	// get current utc and modulo the date info out since it isn't required for
+	// our tests.
+	unsigned int seconds_per_day = 60*60*24;
+	time_t time = std::time(nullptr);
+	unsigned int utc = time % seconds_per_day;
+
+    // loop through each row of schedule looking for current utc
+    for (unsigned int i = pdm_index_; i < schedule_pdm_.size(); i++) {
+        RowPDM& row = schedule_pdm_.at (i);
+
+        if (row.utc == utc && pdm_index_ != i) {
+	        // get hour info
+	        struct tm time_info = *std::localtime (&time);
+	        int hour = time_info.tm_hour;
+            // if the time is found then determine dispatch
+            if (row.temperature > 85 && hour >= 18 && hour <= 21) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
+                vpp_ptr_->SetImportWatts (0);
+		    	float available_watts = vpp_ptr_->GetTotalExportPower ();
+		        vpp_ptr_->SetExportWatts (available_watts);
+            } else if (row.temperature < 39 && hour >= 17 && hour <= 20) {
+            	std::vector <std::string> targets = {""};
+	        	vpp_ptr_->SetTargets(targets);
+                vpp_ptr_->SetImportWatts (0);
+		    	float available_watts = vpp_ptr_->GetTotalExportPower ();
+		        vpp_ptr_->SetExportWatts (available_watts);
+            } 
+
+            // store index so multiple control signals are not sent
+            pdm_index_ = i;
+        }
+    }
 };  // end Service PDM
 
 // Service FER
