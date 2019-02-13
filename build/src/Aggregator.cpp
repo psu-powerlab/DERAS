@@ -210,6 +210,7 @@ void Aggregator::Log () {
 	    for (const auto &resource : resources_) {
 			Logger("DATA", log_path_)
 				<< resource->GetPath () << '\t'
+				<< "[E: r, rp, re, p, e, I: r, rp, re, p, e]" << "\t"
 				<< resource->GetExportRamp () << '\t'
 				<< resource->GetRatedExportPower () << '\t'
 				<< resource->GetRatedExportEnergy () << '\t'

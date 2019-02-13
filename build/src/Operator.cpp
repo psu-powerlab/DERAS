@@ -191,8 +191,8 @@ void Operator::ServicePJMA () {
     for (unsigned int i = pjm_a_index_; i < schedule_pjm_a_.size(); i++) {
         RowPJM& row = schedule_pjm_a_.at (i);
 
-        if (row.utc == utc && pjm_a_index_ != i) {
 
+        if ((row.utc % seconds_per_day == utc) && pjm_a_index_ != i) {
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
             	std::vector <std::string> targets = {""};
@@ -239,7 +239,7 @@ void Operator::ServicePJMD () {
     for (unsigned int i = pjm_d_index_; i < schedule_pjm_d_.size(); i++) {
         RowPJM& row = schedule_pjm_d_.at (i);
 
-        if (row.utc == utc && pjm_d_index_ != i) {
+        if ((row.utc % seconds_per_day == utc) && pjm_d_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
@@ -286,7 +286,7 @@ void Operator::ServiceEIM () {
     for (unsigned int i = eim_index_; i < schedule_eim_.size(); i++) {
         RowEIM& row = schedule_eim_.at (i);
 
-        if (row.utc == utc && eim_index_ != i) {
+        if ((row.utc % seconds_per_day == utc) && eim_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
@@ -330,26 +330,26 @@ void Operator::ServiceTOU () {
         struct tm time_info = *std::localtime (&time);
         int month = time_info.tm_mon + 1;
         int hour = time_info.tm_hour;
-        if (month >= MAY || month <= OCT) {
+        if (month >= MAY && month <= OCT) {
         	// SUMMER TOU
-        	if (hour >= 22 || hour < 6) {
+        	if (hour >= 22 && hour < 6) {
         		tou_tier_ = OFF_PEAK;
-        	} else if (hour >= 6 || hour < 15) {
+        	} else if (hour >= 6 && hour < 15) {
         		tou_tier_ = MID_PEAK;
-        	} else if (hour >= 15 || hour < 20) {
+        	} else if (hour >= 15 && hour < 20) {
         		tou_tier_ = ON_PEAK;
         	} else {
         		tou_tier_ = MID_PEAK;
         	}
         } else {
         	// WINTER TOU
-        	if (hour >= 22 || hour < 6) {
+        	if (hour >= 22 && hour < 6) {
         		tou_tier_ = OFF_PEAK;
-        	} else if (hour >= 6 || hour < 10) {
+        	} else if (hour >= 6 && hour < 10) {
         		tou_tier_ = ON_PEAK;
-        	} else if (hour >= 10 || hour < 17) {
+        	} else if (hour >= 10 && hour < 17) {
         		tou_tier_ = MID_PEAK;
-        	} else if (hour >= 17|| hour < 20) {
+        	} else if (hour >= 17 && hour < 20) {
         		tou_tier_ = ON_PEAK;
         	} else {
         		tou_tier_ = MID_PEAK;
@@ -367,13 +367,13 @@ void Operator::ServiceTOU () {
         	std::vector <std::string> targets = {"buffer"};
         	vpp_ptr_->SetTargets(targets);
         	float available_watts = vpp_ptr_->GetTotalImportPower ();
-            vpp_ptr_->SetImportWatts (available_watts);
+            	vpp_ptr_->SetImportWatts (available_watts);
         } else {
         	// import as much as possible
         	std::vector <std::string> targets = {""};
         	vpp_ptr_->SetTargets(targets);
         	float available_watts = vpp_ptr_->GetTotalImportPower ();
-            vpp_ptr_->SetImportWatts (available_watts);
+            	vpp_ptr_->SetImportWatts (available_watts);
         }
         tou_index_ = utc;
     }
@@ -398,7 +398,7 @@ void Operator::ServicePDM () {
     for (unsigned int i = pdm_index_; i < schedule_pdm_.size(); i++) {
         RowPDM& row = schedule_pdm_.at (i);
 
-        if (row.utc == utc && pdm_index_ != i) {
+        if ((row.utc % seconds_per_day == utc) && pdm_index_ != i) {
 	        // get hour info
 	        struct tm time_info = *std::localtime (&time);
 	        int hour = time_info.tm_hour;
