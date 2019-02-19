@@ -294,6 +294,7 @@ void Operator::ServiceEIM () {
 	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
             	float dispatch_watts = available_watts * row.normalized_power;
+            	std::cout << "EIM: import = " << dispatch_watts << std::endl;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
 	        	std::vector <std::string> targets = {""};

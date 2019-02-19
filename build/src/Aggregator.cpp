@@ -139,10 +139,10 @@ void Aggregator::AddResource (
 // - when the Client Listener gets a property update signal it will look for the
 // - correct resource and update it's properties
 void Aggregator::UpdateResource (std::map <std::string, unsigned int>& init,
-				 				 const std::string& path) {
+				 				 const std::string& uid) {
 	bool found = false;
 	for (auto& resource : resources_) {
-		if (resource->GetPath() == path) {
+		if (resource->GetUID() == uid) {
 			resource->SetRatedExportEnergy (init["rated_export_energy"]);
 			resource->SetRatedExportPower (init["rated_export_power"]);
 			resource->SetExportEnergy (init["export_energy"]);
@@ -159,7 +159,16 @@ void Aggregator::UpdateResource (std::map <std::string, unsigned int>& init,
 	}
 
 	if (found) {
-		// do nothing
+			Logger("Property", log_path_)
+				<< resource->GetUID () << '\t'
+				<< resource->GetPath () << '\t'
+				<< resource->GetExportRamp () << '\t'
+				<< resource->GetRatedExportPower () << '\t'
+				<< resource->GetRatedExportEnergy () << '\t'
+				<< resource->GetImportRamp () << '\t'
+				<< resource->GetRatedImportPower () << '\t'
+				<< resource->GetRatedImportEnergy () << '\t'
+				<< resource->GetIdleLosses ();
 	} else {
 		std::cout 
 			<< "Property update signal recieved from unknown resource!" 
@@ -170,12 +179,12 @@ void Aggregator::UpdateResource (std::map <std::string, unsigned int>& init,
 // Remove Resource
 // - if the Client Listener recieves a object loss signal then it will remove
 // - it from the resource list
-void Aggregator::RemoveResource (const std::string& path) {
+void Aggregator::RemoveResource (const std::string& uid) {
     // (TS): unlike a normal for loop, this loops iterator must be
     //       incremented only if the element is not deleted or you get
     //       memory leaks.
     for (auto it = resources_.begin(); it != resources_.end();) {
-        if ((*it)->GetPath ().find(path) != std::string::npos) {
+        if ((*it)->GetUID ().find(uid) != std::string::npos) {
             it = resources_.erase (it);
         } else {
             it++;
@@ -208,17 +217,13 @@ void Aggregator::Log () {
     unsigned int utc = time(0);
     if (utc != last_log_ && utc % log_inc_ == 0) {
 	    for (const auto &resource : resources_) {
-			Logger("DATA", log_path_)
+			Logger("Data", log_path_)
+				<< resource->GetUID () << '\t'
 				<< resource->GetPath () << '\t'
-				<< "[E: r, rp, re, p, e, I: r, rp, re, p, e]" << "\t"
-				<< resource->GetExportRamp () << '\t'
-				<< resource->GetRatedExportPower () << '\t'
-				<< resource->GetRatedExportEnergy () << '\t'
+				<< resource->GetExportWatts () << '\t'
 				<< resource->GetExportPower () << '\t'
 				<< resource->GetExportEnergy () << '\t'
-				<< resource->GetImportRamp () << '\t'
-				<< resource->GetRatedImportPower () << '\t'
-				<< resource->GetRatedImportEnergy () << '\t'
+				<< resource->GetImportWatts () << '\t'
 				<< resource->GetImportPower () << '\t'
 				<< resource->GetImportEnergy ();
 		    }
@@ -284,7 +289,6 @@ void Aggregator::FilterResources () {
 	        }
 	    }	
     }
-
 }
 
 // Export Power
@@ -311,7 +315,9 @@ void Aggregator::ExportPower () {
     for (auto &resource : sub_resources_) {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedExportPower ();
-		    if (resource->GetExportPower () == 0) {
+		    if (resource->GetExportPower () == 0 
+		    	&& resource->GetExportEnergy () 
+		    	>= 0.05 * resource->GetRatedExportEnergy ()) {
 		   		// AllJoyn Method Call and digital twin
 			    resource->RemoteExportPower (power);
 		    }
@@ -324,7 +330,6 @@ void Aggregator::ExportPower () {
 		// once dispatch has been met tell other resources to stop exporting
 		} else {
 		    if (resource->GetExportPower () != 0) {
-		    	std::cout << "DEBUG: export power off\n";
 			    // AllJoyn Method Call
 			    resource->RemoteExportPower (0);
 		    }
@@ -356,7 +361,9 @@ void Aggregator::ImportPower () {
     for (auto &resource : sub_resources_) {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedImportPower ();
-		    if (resource->GetImportPower () == 0) {
+		    if (resource->GetImportPower () == 0
+		    	&& resource->GetImportEnergy () 
+		    	>= 0.05 * resource->GetRatedImportEnergy ()) {
 			    // AllJoyn Method Call and digital twin
 			    resource->RemoteImportPower (power);
 		    }
@@ -370,7 +377,6 @@ void Aggregator::ImportPower () {
 		// once dispatch has been met tell other resources to stop importing
 		} else {
 		    if (resource->GetImportPower () != 0) {
-		    	std::cout << "DEBUG: import power off\n";
 			    // AllJoyn Method Call
 			    resource->RemoteImportPower (0);
 		    }

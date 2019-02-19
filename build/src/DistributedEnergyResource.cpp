@@ -177,6 +177,12 @@ unsigned int DistributedEnergyResource::GetExportRamp () {
     return export_ramp_;
 }  // end Get Export Ramp
 
+// Get Export Watts
+// - get the control watts
+unsigned int DistributedEnergyResource::GetExportWatts () {
+    return export_watts_;
+}  // end Get Export Watts
+
 // Set Import Watts
 // - turn off export power and set control setting for ImportPower method
 void DistributedEnergyResource::SetImportWatts (unsigned int power) {
@@ -264,6 +270,12 @@ unsigned int DistributedEnergyResource::GetImportRamp () {
     return import_ramp_;
 }  // end Get Import Ramp
 
+// Get Import Watts
+// - get the control watts
+unsigned int DistributedEnergyResource::GetImportWatts () {
+    return import_watts_;
+}  // end Get Import Watts
+
 // Set Idle Losses
 // - set the watt-hours per hour loss when idle
 void DistributedEnergyResource::SetIdleLosses (unsigned int losses) {
@@ -281,6 +293,12 @@ unsigned int DistributedEnergyResource::GetIdleLosses () {
 std::string DistributedEnergyResource::GetPath () {
     return proxy_.GetPath ();
 }  // end Get Idle Losses
+
+// Get UID
+// - get the unique ID to the DER
+std::string DistributedEnergyResource::GetUID () {
+    return proxy_.GetUniqueName ();
+}  // end Get UID
 
 // Import Power
 // - calculate power/energy change 

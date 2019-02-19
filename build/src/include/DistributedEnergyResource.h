@@ -38,6 +38,7 @@ class DistributedEnergyResource {
         unsigned int GetExportPower ();
         unsigned int GetExportEnergy ();
         unsigned int GetExportRamp ();
+        unsigned int GetExportWatts ();
         // set import methods
         void SetImportWatts (unsigned int power);
         void SetRatedImportPower (unsigned int watts);
@@ -50,11 +51,13 @@ class DistributedEnergyResource {
         unsigned int GetImportPower ();
         unsigned int GetImportEnergy ();
         unsigned int GetImportRamp ();
+        unsigned int GetImportWatts ();
         // set idle methods
         void SetIdleLosses (unsigned int energy_per_hour);
         unsigned int GetIdleLosses ();  
         std::string GetPath ();
-
+        std::string GetUID ();
+        
     private:
         // class composition
         ajn::ProxyBusObject proxy_;

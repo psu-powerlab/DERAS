@@ -3,6 +3,7 @@
 #include <alljoyn/BusAttachment.h>
 #include <alljoyn/Observer.h>
 #include "include/ClientListener.h"
+#include "include/logger.h"
 
 // (TS): this is the only way I could find to initialize a const char* array.
 //       AllJoyn documentation states "NULL" for registering all properties, but
@@ -36,12 +37,17 @@ ClientListener::ClientListener(
 void ClientListener::ObjectDiscovered (ajn::ProxyBusObject& proxy) {
     std::string path = proxy.GetPath();
     std::string service_name = proxy.GetServiceName();
-    unsigned int session_id = proxy.GetSessionId();
+    std::string name = proxy.GetUniqueName ();
 
     std::cout << "\n[LISTENER]\n";
     std::cout << "\tPath = " << path << '\n';
     std::cout << "\tService Name = " << service_name << '\n';
-    std::cout << "\tSession ID = " << session_id << '\n';
+    std::cout << "\tUID = " << name << '\n';
+
+    Logger("Resources", "/home/dev/LOGS/")
+        << name << '\t'
+        << path << '\t'
+        << "found";
 
 
     bus_ptr_->EnableConcurrentCallbacks();
@@ -68,7 +74,12 @@ void ClientListener::ObjectLost (ajn::ProxyBusObject& proxy) {
     std::cout << "\n[LISTENER] : " << name << " connection lost\n";
     std::cout << "\tPath : " << path << " no longer exists\n";
 
-    vpp_ptr_->RemoveResource (path);
+    Logger("Resources", "/home/dev/LOGS/")
+        << name << '\t'
+        << path << '\t'
+        << "lost";
+
+    vpp_ptr_->RemoveResource (name);
 } // end ObjectLost
 
 // PropertiesChanged
@@ -78,10 +89,9 @@ void ClientListener::PropertiesChanged (ajn::ProxyBusObject& obj,
                                         const ajn::MsgArg& changed,
                                         const ajn::MsgArg& invalidated,
                                         void* context) {
-    std::cout << "DEBUG: Property changed" << std::endl;
     std::map <std::string, unsigned int> init;
     init = ClientListener::MapProperties (changed);
-    vpp_ptr_->UpdateResource (init, obj.GetPath ());
+    vpp_ptr_->UpdateResource (init, obj.GetUniqueName ());
 } // end PropertiesChanged
 
 std::map <std::string, unsigned int> ClientListener::MapProperties (
@@ -100,5 +110,11 @@ std::map <std::string, unsigned int> ClientListener::MapProperties (
             init[name] = property;
         }
     }
+
+    Logger("Resources", "/home/dev/LOGS/")
+        << name << '\t'
+        << path << '\t'
+        << "update";
+
     return init;
 }
