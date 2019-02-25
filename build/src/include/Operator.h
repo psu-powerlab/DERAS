@@ -18,7 +18,9 @@ public:
 	);
 	virtual ~Operator ();
 	void Loop ();
+	std::string GetTime (time_t utc);
 	void SetService (std::string service);
+	void Summary ();
 
 private: 
 	// class composition
@@ -27,6 +29,8 @@ private:
 	std::map <std::string, std::string> configs_;
 	std::string service_;
 	int tou_tier_;
+	bool pdm_control_;
+	bool fer_control_;
 
 	// each schedule will save the last index value to reduce search time
 	unsigned int pjm_a_index_;
@@ -54,48 +58,48 @@ private:
 
 	// data structures
     struct RowPJM {
-        unsigned int utc;
+        std::string time;
         float normalized_power;
 
-        RowPJM (unsigned int time, float percent_power)
-            : utc(time), normalized_power(percent_power) {
+        RowPJM (std::string time, float percent_power)
+            : time(time), normalized_power(percent_power) {
         };
     };
 
     struct RowEIM {
-        unsigned int utc;
+        std::string time;
         float normalized_power;
 
-        RowEIM (unsigned int time, float percent_power)
-            : utc(time), normalized_power(percent_power) {
+        RowEIM (std::string time, float percent_power)
+            : time(time), normalized_power(percent_power) {
         };
     };
 
     struct RowTOU {
-        unsigned int utc;
+        std::string time;
         float real_time_price;
         float day_ahead_price;
 
-        RowTOU (unsigned int time, float real_time, float day_ahead)
-            : utc(time), real_time_price(real_time), day_ahead_price(day_ahead){
+        RowTOU (std::string time, float real_time, float day_ahead)
+            : time(time), real_time_price(real_time), day_ahead_price(day_ahead){
         };
     };
 
     struct RowPDM {
-        unsigned int utc;
+        std::string time;
         int temperature;
 
-        RowPDM (unsigned int time, int Fahrenheit)
-            : utc(time), temperature(Fahrenheit) {
+        RowPDM (std::string time, int Fahrenheit)
+            : time(time), temperature(Fahrenheit) {
         };
     };
 
     struct RowFER {
-        unsigned int utc;
+        std::string time;
         float frequency;
 
-        RowFER (unsigned int time, float hertz)
-            : utc(time), frequency(hertz) {
+        RowFER (std::string time, float hertz)
+            : time(time), frequency(hertz) {
         };
     };
 

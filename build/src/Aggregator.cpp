@@ -131,6 +131,16 @@ void Aggregator::AddResource (
 	std::string interface = config_["AllJoyn"]["client_interface"];
 	std::shared_ptr <DistributedEnergyResource> 
 		der (new DistributedEnergyResource (init, proxy, interface));
+	Logger("Property", log_path_)
+		<< der->GetUID () << '\t'
+		<< der->GetPath () << '\t'
+		<< der->GetExportRamp () << '\t'
+		<< der->GetRatedExportPower () << '\t'
+		<< der->GetRatedExportEnergy () << '\t'
+		<< der->GetImportRamp () << '\t'
+		<< der->GetRatedImportPower () << '\t'
+		<< der->GetRatedImportEnergy () << '\t'
+		<< der->GetIdleLosses ();
 	resources_.push_back (std::move (der));
 	Aggregator::FilterResources ();
 }  // end Add Resource
@@ -159,16 +169,7 @@ void Aggregator::UpdateResource (std::map <std::string, unsigned int>& init,
 	}
 
 	if (found) {
-			Logger("Property", log_path_)
-				<< resource->GetUID () << '\t'
-				<< resource->GetPath () << '\t'
-				<< resource->GetExportRamp () << '\t'
-				<< resource->GetRatedExportPower () << '\t'
-				<< resource->GetRatedExportEnergy () << '\t'
-				<< resource->GetImportRamp () << '\t'
-				<< resource->GetRatedImportPower () << '\t'
-				<< resource->GetRatedImportEnergy () << '\t'
-				<< resource->GetIdleLosses ();
+		// do nothing
 	} else {
 		std::cout 
 			<< "Property update signal recieved from unknown resource!" 
@@ -316,8 +317,7 @@ void Aggregator::ExportPower () {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedExportPower ();
 		    if (resource->GetExportPower () == 0 
-		    	&& resource->GetExportEnergy () 
-		    	>= 0.05 * resource->GetRatedExportEnergy ()) {
+		    	&& resource->GetExportWatts () == 0) {
 		   		// AllJoyn Method Call and digital twin
 			    resource->RemoteExportPower (power);
 		    }
@@ -329,7 +329,7 @@ void Aggregator::ExportPower () {
 		    }
 		// once dispatch has been met tell other resources to stop exporting
 		} else {
-		    if (resource->GetExportPower () != 0) {
+		    if (resource->GetExportWatts () != 0) {
 			    // AllJoyn Method Call
 			    resource->RemoteExportPower (0);
 		    }
@@ -362,8 +362,7 @@ void Aggregator::ImportPower () {
 		if (dispatch_power > 0) {
 			power = resource->GetRatedImportPower ();
 		    if (resource->GetImportPower () == 0
-		    	&& resource->GetImportEnergy () 
-		    	>= 0.05 * resource->GetRatedImportEnergy ()) {
+		    	&& resource->GetImportWatts () == 0) {
 			    // AllJoyn Method Call and digital twin
 			    resource->RemoteImportPower (power);
 		    }
@@ -376,7 +375,7 @@ void Aggregator::ImportPower () {
 		    }
 		// once dispatch has been met tell other resources to stop importing
 		} else {
-		    if (resource->GetImportPower () != 0) {
+		    if (resource->GetImportWatts () != 0) {
 			    // AllJoyn Method Call
 			    resource->RemoteImportPower (0);
 		    }

@@ -226,7 +226,6 @@ void DistributedEnergyResource::SetImportEnergy (float energy) {
         import_energy_ = rated_import_energy_;
     } else if (energy <= 0) {
         import_energy_ = 0;
-        import_watts_ = 0;  // stop importing
     } else {
         import_energy_ = energy;
     }

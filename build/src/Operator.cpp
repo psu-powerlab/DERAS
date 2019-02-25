@@ -44,6 +44,15 @@ void Operator::Loop () {
 	}
 };  // end Loop
 
+// Get Time
+// - return HH:MM:SS formatted time
+std::string Operator::GetTime (time_t utc) {
+	    struct tm ts = *localtime(&utc);
+	    char buf[100];
+	    strftime(buf, sizeof(buf), "%T", &ts);
+	    return std::string(buf);
+}
+
 // Set Service
 // - mutator for the service variable
 void Operator::SetService (std::string service) {
@@ -60,20 +69,58 @@ void Operator::SetService (std::string service) {
 	}
 };  // end Set Service
 
+// Summary
+// - display the current service and the last control sent
+void Operator::Summary () {
+	std::string last_time;
+	float last_control;
+	if (service_ == "OFF") {
+		last_time = 1;
+		last_control = 0;
+	} else if (service_ == "PJMA") {
+		RowPJM& row = schedule_pjm_a_.at(pjm_a_index_);
+		last_time = row.time;
+		last_control = row.normalized_power;
+	} else if (service_ == "PJMD") {
+		RowPJM& row = schedule_pjm_d_.at(pjm_d_index_);
+		last_time = row.time;
+		last_control = row.normalized_power;
+	} else if (service_ == "EIM") {
+		RowEIM& row = schedule_eim_.at(eim_index_);
+		last_time = row.time;
+		last_control = row.normalized_power;
+	} else if (service_ == "TOU") {
+	    time_t now = time(nullptr);
+		last_time = Operator::GetTime (now);
+		last_control = tou_tier_;
+	} else if (service_ == "PDM") {
+		RowPDM& row = schedule_pdm_.at(pdm_index_);
+		last_time = row.time;
+		last_control = pdm_control_;
+	} else if (service_ == "FER") {
+		RowFER& row = schedule_fer_.at(fer_index_);
+		last_time = row.time;
+		last_control = fer_control_;
+	}
+	std::cout << "\nOperator:"
+		<< "\n\t service:\t" << service_
+		<< "\n\t last time:\t" << last_time
+		<< "\n\t last control:\t" << last_control << std::endl;
+
+};  // end Summary
+
 // Get PJM A
 // - read the PJM schedule and format for use
 void Operator::GetPJMA () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["pjma_filepath"], ',', 2);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	float percent_power;
 	schedule_pjm_a_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
 	    // http://man7.org/linux/man-pages/man3/strptime.3.html
-	    strptime(row.at (0).c_str(), configs_["pjma_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		percent_power = stof (row.at (1));
 		schedule_pjm_a_.emplace_back(time, percent_power);
 	}
@@ -84,14 +131,12 @@ void Operator::GetPJMA () {
 void Operator::GetPJMD () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["pjmd_filepath"], ',', 2);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	float percent_power;
 	schedule_pjm_d_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
-	    strptime(row.at (0).c_str(), configs_["pjmd_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		percent_power = stof (row.at (1));
 		schedule_pjm_d_.emplace_back(time, percent_power);
 	}
@@ -102,15 +147,14 @@ void Operator::GetPJMD () {
 void Operator::GetEIM () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["eim_filepath"], ',', 2);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	float percent_power;
 	schedule_eim_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
-	    strptime(row.at (0).c_str(), configs_["eim_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		percent_power = stof (row.at (1));
+		std::cout << time << "\t" << percent_power << '\n';
 		schedule_eim_.emplace_back(time, percent_power);
 	}
 };  // end Get EIM
@@ -120,15 +164,13 @@ void Operator::GetEIM () {
 void Operator::GetTOU () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["tou_filepath"], ',', 3);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	float day_ahead;
 	float real_time;
 	schedule_tou_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
-	    strptime(row.at (0).c_str(), configs_["tou_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		day_ahead = stof (row.at (1));
 		real_time = stof (row.at (2));
 		schedule_tou_.emplace_back(time, real_time, day_ahead);
@@ -140,14 +182,12 @@ void Operator::GetTOU () {
 void Operator::GetPDM () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["pdm_filepath"], ',', 2);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	int fahrenheit;
 	schedule_pdm_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
-	    strptime(row.at (0).c_str(), configs_["pdm_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		fahrenheit = stoi (row.at (1));
 		schedule_pdm_.emplace_back(time, fahrenheit);
 	}
@@ -158,14 +198,12 @@ void Operator::GetPDM () {
 void Operator::GetFER () {
 	tsu::string_matrix schedule 
 		= tsu::FileToMatrix (configs_["fer_filepath"], ',', 2);
-	struct tm tm;
-	unsigned int time;
+	std::string time;
 	float hertz;
 	schedule_fer_.reserve (schedule.size ());
 	schedule.erase (schedule.begin ());  // remove header
 	for (const auto& row : schedule) {
-	    strptime(row.at (0).c_str(), configs_["fer_time_format"].c_str(), &tm);
-	    time = std::mktime (&tm);
+	    time = row.at(0);
 		hertz = stof (row.at (1));
 		schedule_fer_.emplace_back(time, hertz);
 	}
@@ -182,17 +220,15 @@ void Operator::ServicePJMA () {
 		Operator::GetPJMA ();
 	}
 
-	// get current utc and modulo the date info out since it isn't required for
-	// our tests.
-	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = std::time(nullptr) % seconds_per_day;
+    time_t now = time(nullptr);
+	std::string time = Operator::GetTime (now);
 
     // loop through each row of schedule looking for current utc
     for (unsigned int i = pjm_a_index_; i < schedule_pjm_a_.size(); i++) {
         RowPJM& row = schedule_pjm_a_.at (i);
 
 
-        if ((row.utc % seconds_per_day == utc) && pjm_a_index_ != i) {
+        if ((row.time == time) && pjm_a_index_ != i) {
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
             	std::vector <std::string> targets = {""};
@@ -230,16 +266,14 @@ void Operator::ServicePJMD () {
 		Operator::GetPJMD ();
 	}
 
-	// get current utc and modulo the date info out since it isn't required for
-	// our tests.
-	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = std::time(nullptr) % seconds_per_day;
+    time_t now = time(nullptr);
+	std::string time = Operator::GetTime (now);
 
     // loop through each row of schedule looking for current utc
     for (unsigned int i = pjm_d_index_; i < schedule_pjm_d_.size(); i++) {
         RowPJM& row = schedule_pjm_d_.at (i);
 
-        if ((row.utc % seconds_per_day == utc) && pjm_d_index_ != i) {
+        if ((row.time == time) && pjm_d_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
@@ -277,34 +311,26 @@ void Operator::ServiceEIM () {
 		Operator::GetEIM ();
 	}
 
-	// get current utc and modulo the date info out since it isn't required for
-	// our tests.
-	unsigned int seconds_per_day = 60*60*24;
-	unsigned int utc = std::time(nullptr) % seconds_per_day;
+    time_t now = time(nullptr);
+	std::string time = Operator::GetTime (now);
 
     // loop through each row of schedule looking for current utc
     for (unsigned int i = eim_index_; i < schedule_eim_.size(); i++) {
         RowEIM& row = schedule_eim_.at (i);
 
-        if ((row.utc % seconds_per_day == utc) && eim_index_ != i) {
+        if ((row.time == time) && eim_index_ != i) {
 
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
-            	std::vector <std::string> targets = {""};
-	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
             	float dispatch_watts = available_watts * row.normalized_power;
             	std::cout << "EIM: import = " << dispatch_watts << std::endl;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
-	        	std::vector <std::string> targets = {""};
-	        	vpp_ptr_->SetTargets(targets);
             	float available_watts = vpp_ptr_->GetTotalExportPower ();
             	float dispatch_watts = available_watts*(-row.normalized_power);
                 vpp_ptr_->SetExportWatts (dispatch_watts);
             } else {
-            	std::vector <std::string> targets = {""};
-	        	vpp_ptr_->SetTargets(targets);
                 vpp_ptr_->SetImportWatts (0);
             }
 
@@ -391,15 +417,14 @@ void Operator::ServicePDM () {
 
 	// get current utc and modulo the date info out since it isn't required for
 	// our tests.
-	unsigned int seconds_per_day = 60*60*24;
 	time_t time = std::time(nullptr);
-	unsigned int utc = time % seconds_per_day;
+	std::string f_time = Operator::GetTime (time);
 
     // loop through each row of schedule looking for current utc
     for (unsigned int i = pdm_index_; i < schedule_pdm_.size(); i++) {
         RowPDM& row = schedule_pdm_.at (i);
 
-        if ((row.utc % seconds_per_day == utc) && pdm_index_ != i) {
+        if ((row.time == f_time) && pdm_index_ != i) {
 	        // get hour info
 	        struct tm time_info = *std::localtime (&time);
 	        int hour = time_info.tm_hour;
@@ -410,13 +435,17 @@ void Operator::ServicePDM () {
                 vpp_ptr_->SetImportWatts (0);
 		    	float available_watts = vpp_ptr_->GetTotalExportPower ();
 		        vpp_ptr_->SetExportWatts (available_watts);
+		        pdm_control_ = true;
             } else if (row.temperature < 39 && hour >= 17 && hour <= 20) {
             	std::vector <std::string> targets = {""};
 	        	vpp_ptr_->SetTargets(targets);
                 vpp_ptr_->SetImportWatts (0);
 		    	float available_watts = vpp_ptr_->GetTotalExportPower ();
 		        vpp_ptr_->SetExportWatts (available_watts);
-            } 
+		        pdm_control_ = true;
+            } else {
+            	pdm_control_ = false;
+            }
 
             // store index so multiple control signals are not sent
             pdm_index_ = i;

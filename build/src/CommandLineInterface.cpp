@@ -70,6 +70,7 @@ bool CommandLineInterface::Control (const std::string& input) {
             break;
         }
         case 's': {
+            oper_ptr_->Summary ();
             vpp_ptr_->DisplaySummary ();
             break;
         }
