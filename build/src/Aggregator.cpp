@@ -141,6 +141,7 @@ void Aggregator::AddResource (
 		<< der->GetRatedImportPower () << '\t'
 		<< der->GetRatedImportEnergy () << '\t'
 		<< der->GetIdleLosses ();
+	der->RemoteImportPower (0);
 	resources_.push_back (std::move (der));
 	Aggregator::FilterResources ();
 }  // end Add Resource

@@ -333,11 +333,13 @@ void Operator::ServiceEIM () {
             } else {
                 vpp_ptr_->SetImportWatts (0);
             }
-
-            // store index so multiple control signals are not sent
-            eim_index_ = i;
+			// store index so multiple control signals are not sent
+			eim_index_ = i;
         }
     }
+	if (eim_index_ == (schedule_eim_.size () - 1)) {
+		eim_index_ = 0;
+	}
 };  // end Service EIM
 
 // Service TOU
