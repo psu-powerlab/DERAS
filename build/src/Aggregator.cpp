@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <ctime>
 #include <map>
 #include <alljoyn/ProxyBusObject.h>
 #include <alljoyn/Status.h>
@@ -75,8 +76,11 @@ void Aggregator::SetTemperature (int temperature) {
 
 // Set Time
 // - the UTC time as seconds from epoch
-void Aggregator::SetTime (unsigned int utc) {
-	time_ = utc;
+void Aggregator::SetTime () {
+	unsigned int utc = time (nullptr);
+	if (utc % (60) == 0) {
+		time_ = utc;
+	}
 }  // end Set Time
 
 // Get Total Export Energy
@@ -207,7 +211,8 @@ void Aggregator::Loop (float delta_time) {
 	Aggregator::UpdateTotals ();
 	Aggregator::ExportPower ();
 	Aggregator::ImportPower ();
-    Aggregator::Log ();
+	Aggregator::Log ();
+	Aggregator::SetTime ();
 }  // end Loop
 
 // Log

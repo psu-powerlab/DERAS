@@ -21,7 +21,7 @@ public:
     void SetTargets (const std::vector <std::string> &targets);
     void SetExportWatts (unsigned int power);
     void SetImportWatts (unsigned int power);
-    void SetTime (unsigned int utc);
+    void SetTime ();
     void SetPrice (int price);
     void SetTemperature (int temperature);
     unsigned int GetTotalExportEnergy ();

@@ -71,9 +71,9 @@ QStatus SmartGridDevice::SendPropertiesUpdate () {
 void SmartGridDevice::Loop () {
     int price = vpp_ptr_->GetPrice ();
     int temp = vpp_ptr_->GetTemperature ();
-    unsigned int time = vpp_ptr_->GetTime ();
-    if (time != time_ || price != price_ || temp != temp_) {
-        time_ = time;
+    unsigned int utc = vpp_ptr_->GetTime();
+    if (utc != time_ || price != price_ || temp != temp_) {
+        time_ = utc;
         price_ = price;
         temp_ = temp;
     	SmartGridDevice::SendPropertiesUpdate ();
