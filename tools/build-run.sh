@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # setup environment
-export CPU=arm
+export CPU=x86_64
 export OS=linux
 export VARIANT=debug
 export AJ_ROOT=$HOME/src/core-alljoyn/build/$OS/$CPU/$VARIANT/dist/cpp
