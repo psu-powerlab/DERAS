@@ -78,7 +78,9 @@ void Aggregator::SetTemperature (int temperature) {
 // - the UTC time as seconds from epoch
 void Aggregator::SetTime () {
 	unsigned int utc = time (nullptr);
-	if (utc % (60) == 0) {
+
+	// update time every hour
+	if (utc % (60*60) == 0) {
 		time_ = utc;
 	}
 }  // end Set Time

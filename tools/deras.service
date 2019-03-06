@@ -1,0 +1,15 @@
+[Unit]
+Description=Distributed Control System Aggregation System for Portland State University
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/tmux new-session -d -s DERAS '/home/tylor/dev/powerlab/DERAS/tools/build-run.sh'
+ExecStop=/usr/bin/tmux kill-session -t DERAS
+WorkingDirectory=/home/tylor/dev/powerlab/DERAS/tools
+Restart=always
+RestartSec=60
+User=tylor
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
