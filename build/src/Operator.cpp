@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ctime>
+#include <numeric>
 #include "include/Operator.h"
 #include "include/tsu.h"
 
@@ -457,5 +458,135 @@ void Operator::ServicePDM () {
 
 // Service FER
 void Operator::ServiceFER () {
+	unsigned int actual_time;
+	float actual_hz;
+	float delta_hz;
+	float moving_avg;
+	float floor_freq = 59.975;
+	float min_slew_rate = 0.0031;
+	float ceiling_freq = 120 - floor_freq;
 
+	if (schedule_fer_.empty()) {
+		Operator::GetFER ();
+	}
+
+	time_t time = std::time(nullptr);
+	std::string f_time = Operator::GetTime (time);
+
+        // loop through each row of schedule looking for current utc
+        for (unsigned int i = fer_index_; i < schedule_fer_.size(); i++) {
+        	RowFER& row = schedule_fer_.at (i);
+
+		if (row.time == f_time && fer_index_ != i) {
+			actual_time = time;
+			actual_hz = row.frequency;
+		}
+	}
+	delta_hz = actual_hz - prev_hz_;
+	prev_hz_ = actual_hz;
+	prev_freqs_.erase(prev_freqs_.begin());
+	prev_freqs_.push_back(actual_hz);
+	moving_avg = accumulate(prev_freqs_.begin(),prev_freqs_.end(),0)
+		/ prev_freqs_.size();
+	
+	if (actual_hz < floor_freq && actual_hz < moving_avg && delta_hz < 0) {
+		neg_deviation_ = 1;
+	}
+	
+	if (actual_hz > ceiling_freq && actual_hz > moving_avg && delta_hz > 0) {
+		pos_deviation_ = 1;
+	}
+
+	if (neg_deviation_ == 1) {
+		if (oneshot0_ == 1) {
+			oneshot0_ = 0;
+			event_start_hz_ = abs(delta_hz) + actual_hz;
+			event_min_hz_ = 99;
+			event_start_time_ = actual_time;
+		}
+
+		if (actual_hz < event_min_hz_) {
+			event_min_hz_ = actual_hz;
+		} else if ((actual_hz - event_min_hz_) > 0.003) {
+			neg_deviation_ = 0;
+			event_delta_hz_ = 0;
+			event_duration_sec_ = 0;
+		}
+	} else {
+		oneshot0_ = 1;
+	}
+
+	if (pos_deviation_ == 1) {
+		if (oneshot1_ == 1) {
+			oneshot1_ == 0;
+			event_start_hz_ = actual_hz - abs(delta_hz);
+			event_max_hz_ = 0;
+			event_start_time_ = actual_time;
+		}
+
+		if (actual_hz > event_max_hz_) {
+			event_max_hz_ = actual_hz;
+		} else if ((event_max_hz_ - actual_hz) > 0.003) {
+			pos_deviation_ = 0;
+			event_delta_hz_ = 0;
+			event_duration_sec_ = 0;
+		}
+	} else {
+		oneshot1_ = 1;
+	}
+
+	if (nev_deviation_ == 1 && actual_hz < moving_avg) {
+		event_delta_hz_ = event_start_hz_ - actual_hz;
+		event_duration_sec_ = event_start_time_ - actual_time;
+	}
+
+	if (pos_deviation_ == 1 && actual_hz > moving_avg) {
+		event_delta_hz = actual_hz - event_start_hz_;
+		event_duration_sec_ = event_start_time_ actual_time;
+	}
+
+	if (neg_response_timer_ == 1 && neg_response_sec_ < 180) {
+		neg_event_detected_ = 1;
+		neg_response_sec_ = actual_time - neg_response_start_time_;
+	} else if (neg_deviation_ == 1 && event_duration_sec_ >= 1
+		&& (event_delta_hz_/event_duration_sec_) >= min_slew_rate
+		&& event_delta_hz_ >= (min_slew_rate * 10)) {
+		neg_event_detected_ = 1;
+		neg_response_timer_ = 1;
+		neg_response_start_time_ = actual_time;
+	} else {
+		neg_reponse_timer = 0;
+		neg_response_sec_ = 0;
+		neg_event_detected_ = 0;
+	}
+
+	if (pos_response_timer_ == 1 && pos_response_sec_ < 180) {
+		pos_event_detected_ = 1;
+		pos_response_sec_ = actual_time - pos_response_start_time_;
+	} else if (pos_deviation_ == 1 && event_duration_sec_ >= 1
+		&& (event_delta_hz_/event_duration_sec_) >= min_slew_rate
+		&& event_delta_hz_ >= (min_slew_rate * 10)) {
+		pos_event_detected_ = 1;
+		pos_response_timer_ = 1;
+		pos_response_start_time_ = actual_time;
+	} else {
+		pos_reponse_timer = 0;
+		pos_response_sec_ = 0;
+		pos_event_detected_ = 0;
+	}	
+
+	if (neg_event_detected_ == 1) {
+		pos_response_timer_ = 0;
+		pos_response_sec_ = 0;
+		pos_event_detected_ = 0;
+	}
+
+	//Log positive and negative event detection here
+
+	if (neg_event_detected_ == 1) {
+		//negative event response algorithm here
+	} else if (pos_event_detected == 1) {
+		//positive event response algorithm here
+	}
+	
 };  // end Service FER

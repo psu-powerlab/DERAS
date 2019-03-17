@@ -118,6 +118,28 @@ private:
 	enum Tiers {
 		OFF_PEAK, MID_PEAK, ON_PEAK
 	};
+
+private:
+	float prev_hz_ = 60.0;
+	vector<float> prev_freqs_(60,60);
+	bool pos_deviation_ = 0;
+	bool neg_deviation_ = 0;
+	bool oneshot0_ = 1;
+	bool oneshot1_ = 1;
+	float event_min_hz_;
+	float event_max_hz_;
+	float event_delta_hz_ = 0;
+	unsigned int event_start_time_;
+	float event_start_hz_;
+	unsigned int event_duration_sec_;
+	bool neg_event_detected_;
+	unsigned int neg_response_start_time_;
+	unsigned int neg_response_sec_;
+	bool neg_response_timer_;
+	bool pos_event_detected_;
+	unsigned int pos_response_start_time_;
+	unsigned int pos_response_sec_;
+	bool pos_response_timer_;
 };
 
 #endif  // OPERATOR_H_INCLUDED
