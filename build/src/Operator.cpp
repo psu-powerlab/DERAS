@@ -16,7 +16,8 @@ Operator::Operator (std::map <std::string, std::string>& init,
 					  eim_index_(0),
 					  tou_index_(0),
 					  pdm_index_(0),
-					  fer_index_(0) {
+					  fer_index_(0),
+					  prev_freqs_(60,60) {
 	// do nothing
 };
 
@@ -473,15 +474,14 @@ void Operator::ServiceFER () {
 	time_t time = std::time(nullptr);
 	std::string f_time = Operator::GetTime (time);
 
-        // loop through each row of schedule looking for current utc
-        for (unsigned int i = fer_index_; i < schedule_fer_.size(); i++) {
-        	RowFER& row = schedule_fer_.at (i);
+    // loop through each row of schedule looking for current utc
+    for (unsigned int i = fer_index_; i < schedule_fer_.size(); i++) {
+    	RowFER& row = schedule_fer_.at (i);
 
-		if (row.time == f_time && fer_index_ != i) {
-			actual_time = time;
-			actual_hz = row.frequency;
-		}
-	}
+	if (row.time == f_time && fer_index_ != i) {
+		actual_time = time;
+		actual_hz = row.frequency;
+
 	delta_hz = actual_hz - prev_hz_;
 	prev_hz_ = actual_hz;
 	prev_freqs_.erase(prev_freqs_.begin());
@@ -490,6 +490,10 @@ void Operator::ServiceFER () {
 		/ prev_freqs_.size();
 	
 	if (actual_hz < floor_freq && actual_hz < moving_avg && delta_hz < 0) {
+		std::cout << "Negative deviation detected"
+			<< "\n\t Actual Hz: " << actual_hz
+			<< "\n\t Moving Avg. : " << moving_avg << std::endl;
+
 		neg_deviation_ = 1;
 	}
 	
@@ -535,14 +539,14 @@ void Operator::ServiceFER () {
 		oneshot1_ = 1;
 	}
 
-	if (nev_deviation_ == 1 && actual_hz < moving_avg) {
+	if (neg_deviation_ == 1 && actual_hz < moving_avg) {
 		event_delta_hz_ = event_start_hz_ - actual_hz;
 		event_duration_sec_ = event_start_time_ - actual_time;
 	}
 
 	if (pos_deviation_ == 1 && actual_hz > moving_avg) {
-		event_delta_hz = actual_hz - event_start_hz_;
-		event_duration_sec_ = event_start_time_ actual_time;
+		event_delta_hz_ = actual_hz - event_start_hz_;
+		event_duration_sec_ = event_start_time_ - actual_time;
 	}
 
 	if (neg_response_timer_ == 1 && neg_response_sec_ < 180) {
@@ -555,7 +559,7 @@ void Operator::ServiceFER () {
 		neg_response_timer_ = 1;
 		neg_response_start_time_ = actual_time;
 	} else {
-		neg_reponse_timer = 0;
+		neg_response_timer_ = 0;
 		neg_response_sec_ = 0;
 		neg_event_detected_ = 0;
 	}
@@ -570,7 +574,7 @@ void Operator::ServiceFER () {
 		pos_response_timer_ = 1;
 		pos_response_start_time_ = actual_time;
 	} else {
-		pos_reponse_timer = 0;
+		pos_response_timer_ = 0;
 		pos_response_sec_ = 0;
 		pos_event_detected_ = 0;
 	}	
@@ -585,8 +589,18 @@ void Operator::ServiceFER () {
 
 	if (neg_event_detected_ == 1) {
 		//negative event response algorithm here
-	} else if (pos_event_detected == 1) {
+		std::cout << "Negative event: " 
+			<< "\n\t time : " << actual_time << std::endl;
+	} else if (pos_event_detected_ == 1) {
 		//positive event response algorithm here
+		std::cout << "Positive event: " 
+			<< "\n\t time : " << actual_time << std::endl;
+
 	}
+
+		fer_index_ = i;
+	}
+}
+
 	
 };  // end Service FER

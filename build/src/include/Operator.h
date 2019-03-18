@@ -121,7 +121,7 @@ private:
 
 private:
 	float prev_hz_ = 60.0;
-	vector<float> prev_freqs_(60,60);
+	std::vector <float> prev_freqs_;
 	bool pos_deviation_ = 0;
 	bool neg_deviation_ = 0;
 	bool oneshot0_ = 1;
