@@ -26,11 +26,12 @@ LIB := -lstdc++ -lpthread -lrt -lm $(PILIBS)
 INC := -I src/include
 
 # AllJoyn Requirments
-ifeq ($(AJ_ROUTER), stand-alone)
-	AJFLAGS := -DROUTER
+ifeq ($(AJ_ROUTER), standalone)
+	AJFLAGS := 
 else
-	AJFLAGS :=
+	AJFLAGS := -DROUTER
 endif
+
 
 CFLAGS += $(AJFLAGS)
 LIB += -L$(AJ_LIB) -lalljoyn -lajrouter

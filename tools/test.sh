@@ -17,11 +17,3 @@ export AJ_ROUTER=standalone
 killall alljoyn-daemon
 sleep 1
 $AJ_ROOT/bin/alljoyn-daemon --config-file=../data/rn-config.xml > /dev/null 2>&1 &
-sleep 5
-
-# build
-export SRC=deras
-make -C ../build
-
-# run
-./../build/bin/debug/$SRC -c ./../data/config.ini
