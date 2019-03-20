@@ -140,6 +140,7 @@ private:
 	unsigned int pos_response_start_time_;
 	unsigned int pos_response_sec_;
 	bool pos_response_timer_;
+	unsigned int import_power_request_;
 };
 
 #endif  // OPERATOR_H_INCLUDED

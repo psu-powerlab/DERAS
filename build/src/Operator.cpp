@@ -3,6 +3,7 @@
 #include <numeric>
 #include "include/Operator.h"
 #include "include/tsu.h"
+#include <cmath>
 
 // constructor
 Operator::Operator (std::map <std::string, std::string>& init, 
@@ -466,6 +467,9 @@ void Operator::ServiceFER () {
 	float floor_freq = 59.975;
 	float min_slew_rate = 0.0031;
 	float ceiling_freq = 120 - floor_freq;
+	float t1 = 180.0/3600;
+	float t2 = t1;
+	float ramp_down_power;
 
 	if (schedule_fer_.empty()) {
 		Operator::GetFER ();
@@ -490,9 +494,9 @@ void Operator::ServiceFER () {
 		moving_avg = accumulate(prev_freqs_.begin(),prev_freqs_.end(),0.0)
 			/ prev_freqs_.size();
 	
-		std::cout << "time:\t" << actual_time << std::endl;
-		std::cout << "moving avg:\t" << moving_avg << std::endl;
-		std::cout << "new freq:\t" << actual_hz << std::endl;
+		//std::cout << "time:\t" << actual_time << std::endl;
+		//std::cout << "moving avg:\t" << moving_avg << std::endl;
+		//std::cout << "new freq:\t" << actual_hz << std::endl;
 		std::cout << "delta hz:\t" << delta_hz << std::endl;
 
 		if (actual_hz < floor_freq && actual_hz < moving_avg && delta_hz < 0) {
@@ -517,7 +521,6 @@ void Operator::ServiceFER () {
 
 			if (actual_hz < event_min_hz_) {
 				event_min_hz_ = actual_hz;
-				std::cout <<"Event min hz:\t" << event_min_hz_ << std::endl;
 			} else if ((actual_hz - event_min_hz_) > 0.003) {
 				neg_deviation_ = 0;
 				event_delta_hz_ = 0;
@@ -549,9 +552,6 @@ void Operator::ServiceFER () {
 		if (neg_deviation_ == 1 && actual_hz < moving_avg) {
 			event_delta_hz_ = event_start_hz_ - actual_hz;
 			event_duration_sec_ = actual_time - event_start_time_;
-			std::cout << "event delta hz:\t" << event_delta_hz_ << std::endl;
-			std::cout << "event starttime:\t" << event_start_time_ << std::endl;
-			std::cout << "event duration:\t" << event_duration_sec_ << std::endl;
 		}
 
 		if (pos_deviation_ == 1 && actual_hz > moving_avg) {
@@ -560,7 +560,7 @@ void Operator::ServiceFER () {
 		}
 
 
-		if (neg_response_timer_ == 1 && neg_response_sec_ < 180) {
+		if (neg_response_timer_ == 1 && neg_response_sec_ <= 360) {
 			neg_event_detected_ = 1;
 			neg_response_sec_ = actual_time - neg_response_start_time_;
 		} else if (neg_deviation_ == 1 && event_duration_sec_ >= 1
@@ -575,7 +575,7 @@ void Operator::ServiceFER () {
 			neg_event_detected_ = 0;
 		}
 
-		if (pos_response_timer_ == 1 && pos_response_sec_ < 180) {
+		if (pos_response_timer_ == 1 && pos_response_sec_ <= 360) {
 			pos_event_detected_ = 1;
 			pos_response_sec_ = actual_time - pos_response_start_time_;
 		} else if (pos_deviation_ == 1 && event_duration_sec_ >= 1
@@ -597,16 +597,47 @@ void Operator::ServiceFER () {
 		}
 
 		//Log positive and negative event detection here
-
+		
 		if (neg_event_detected_ == 1) {
-			//negative event response algorithm here
 			std::cout << "Negative event: " 
 				<< "\n\t time : " << actual_time << std::endl;
 		} else if (pos_event_detected_ == 1) {
-			//positive event response algorithm here
 			std::cout << "Positive event: " 
 				<< "\n\t time : " << actual_time << std::endl;
+		}
+		
 
+		//Positive Response Algorithm
+		if (pos_event_detected_ == 1 && pos_response_start_time_ == actual_time) {
+			unsigned int total_import_energy = vpp_ptr_->GetTotalImportEnergy ();
+			std::cout << "Response total import energy:\t" << total_import_energy << std::endl;
+			float import_request = total_import_energy*pow(t1 + t2/2,-1);
+			unsigned int max_import_power = vpp_ptr_->GetTotalImportPower ();
+			if (import_request > max_import_power) {
+				import_request = max_import_power;
+			}
+			std::cout << "Response P (float):\t" << import_request << std::endl;
+			//import_power_request_ = total_import_energy*pow(t1 + t2/2,-1);
+			import_power_request_ = import_request;
+			std::cout << "Response P:\t" << import_power_request_ << std::endl;
+		}
+
+		if (pos_event_detected_ == 1 && pos_response_sec_ < 180) {
+			vpp_ptr_->SetImportWatts (import_power_request_);
+			std::cout << "Positive event response, import:\t" << import_power_request_ << std::endl;
+		} else if (pos_event_detected_ == 1 && pos_response_sec_ < 360) {
+			ramp_down_power = (1 - (pos_response_sec_-180)/180.0)*import_power_request_;
+			vpp_ptr_->SetImportWatts (ramp_down_power);
+			std::cout << "Event time elapsed:\t" << pos_response_sec_ << std::endl;			
+			std::cout << "Positive event response, ramp down import:\t" << ramp_down_power << std::endl;
+		} else if (pos_event_detected_ == 1 && pos_response_sec_ == 360) {
+			vpp_ptr_->SetImportWatts (0);
+		}
+
+		//Negative Response Algorithm
+		if (neg_event_detected_ == 1 && neg_response_sec_ < 360) {
+			vpp_ptr_->SetImportWatts (0);
+			std::cout << "Negative event response, import set to 0" << std::endl;
 		}
 
 		fer_index_ = i;
