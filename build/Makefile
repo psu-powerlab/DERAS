@@ -25,14 +25,6 @@ CFLAGS := -Wall -pipe -std=c++11 -Wno-long-long -Wno-deprecated -g -DQCC_OS_LINU
 LIB := -lstdc++ -lpthread -lrt -lm $(PILIBS)
 INC := -I src/include
 
-# AllJoyn Requirments
-ifeq ($(AJ_ROUTER), stand-alone)
-	AJFLAGS := -DROUTER
-else
-	AJFLAGS :=
-endif
-
-CFLAGS += $(AJFLAGS)
 LIB += -L$(AJ_LIB) -lalljoyn -lajrouter
 INC += -I$(AJ_INC)
 
