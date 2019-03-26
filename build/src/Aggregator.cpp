@@ -78,9 +78,9 @@ void Aggregator::SetTemperature (int temperature) {
 // - the UTC time as seconds from epoch
 void Aggregator::SetTime () {
 	unsigned int utc = time (nullptr);
-
+	bool half_hour = utc % (60*30) == 0;
 	// update time every hour
-	if (utc % (60*60) == 0) {
+	if (half_hour) {
 		time_ = utc;
 	}
 }  // end Set Time
@@ -268,8 +268,8 @@ void Aggregator::UpdateTotals () {
 }
 
 void Aggregator::DisplaySummary () {
-    std::cout << "\nAggregated Properties:!"
-    	<< "\n\tTotal resources = " << resources_.size ()
+    std::cout << "\nAggregated Properties:"
+    << "\n\tResource Count = " << resources_.size()
 		<< "\n\tTotal Export Energy = " << total_export_energy_
 		<< "\n\tTotal Export Power = " << total_export_power_
 		<< "\n\tTotal Import Energy = " << total_import_energy_

@@ -13,14 +13,7 @@ export BOOST_INC=$HOME/src/boost_1_66_0
 # alljoyn router
 # first kill any daemon's that are currently running, then start new daemon
 # the last /dev/null 2>&1 & has all stdout set to null and runs in background
+export AJ_ROUTER=standalone
 killall alljoyn-daemon
 sleep 1
 $AJ_ROOT/bin/alljoyn-daemon --config-file=../data/rn-config.xml > /dev/null 2>&1 &
-sleep 5
-
-# build
-export SRC=deras
-make -C ../build
-
-# run
-./../build/bin/debug/$SRC -c ./../data/config.ini
