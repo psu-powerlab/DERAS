@@ -269,7 +269,7 @@ void Aggregator::UpdateTotals () {
 
 void Aggregator::DisplaySummary () {
     std::cout << "\nAggregated Properties:"
-        << "\n\tResource Count = " << resources_.size()
+    << "\n\tResource Count = " << resources_.size()
 		<< "\n\tTotal Export Energy = " << total_export_energy_
 		<< "\n\tTotal Export Power = " << total_export_power_
 		<< "\n\tTotal Import Energy = " << total_import_energy_
