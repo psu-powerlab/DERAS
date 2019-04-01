@@ -44,7 +44,7 @@ void ClientListener::ObjectDiscovered (ajn::ProxyBusObject& proxy) {
     std::cout << "\tService Name = " << service_name << '\n';
     std::cout << "\tUID = " << name << '\n';
 
-    Logger("Resources", "/home/tylor/dev/LOGS/")
+    Logger("Resources", "/home/deras/dev/LOGS/")
         << name << '\t'
         << path << '\t'
         << "found";
@@ -74,7 +74,7 @@ void ClientListener::ObjectLost (ajn::ProxyBusObject& proxy) {
     std::cout << "\n[LISTENER] : " << name << " connection lost\n";
     std::cout << "\tPath : " << path << " no longer exists\n";
 
-    Logger("Resources", "/home/tylor/dev/LOGS/")
+    Logger("Resources", "/home/deras/dev/LOGS/")
         << name << '\t'
         << path << '\t'
         << "lost";
@@ -92,10 +92,6 @@ void ClientListener::PropertiesChanged (ajn::ProxyBusObject& obj,
     std::map <std::string, unsigned int> init;
     init = ClientListener::MapProperties (changed);
     vpp_ptr_->UpdateResource (init, obj.GetUniqueName ());
-    Logger("Resources", "/home/tylor/dev/LOGS/")
-        << obj.GetUniqueName () << '\t'
-        << obj.GetPath () << '\t'
-        << "update";
 } // end PropertiesChanged
 
 std::map <std::string, unsigned int> ClientListener::MapProperties (
