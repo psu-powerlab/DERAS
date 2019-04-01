@@ -326,12 +326,17 @@ void Operator::ServiceEIM () {
             // if the time is found then determine dispatch
             if (row.normalized_power > 0) {
             	float available_watts = vpp_ptr_->GetTotalImportPower ();
-            	float dispatch_watts = available_watts * row.normalized_power;
-            	std::cout << "EIM: import = " << dispatch_watts << std::endl;
+            	float available_energy = vpp_ptr_->GetTotalImportEnergy ();
+            	float import_time = available_energy / available_watts;
+            	float distribute_power = available_energy / (4*import_time);  // distributed over 4 times the time
+            	float dispatch_watts = distribute_power * row.normalized_power;
                 vpp_ptr_->SetImportWatts (dispatch_watts);
             } else if (row.normalized_power < 0) {
             	float available_watts = vpp_ptr_->GetTotalExportPower ();
-            	float dispatch_watts = available_watts*(-row.normalized_power);
+            	float available_energy = vpp_ptr_->GetTotalImportEnergy ();
+            	float export_time = available_energy / available_watts;
+            	float distribute_power = available_energy / (4*export_time);  // distributed over 4 times the time
+            	float dispatch_watts = distribute_power * row.normalized_power;
                 vpp_ptr_->SetExportWatts (dispatch_watts);
             } else {
                 vpp_ptr_->SetImportWatts (0);
